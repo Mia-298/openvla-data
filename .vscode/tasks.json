@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Git: Sync to GitHub",
+      "type": "shell",
+      "command": "set -e; git pull --rebase --autostash; git add -A; if ! git diff --cached --quiet; then git commit -m sync; fi; git push",
+      "problemMatcher": []
+    }
+  ]
+}
