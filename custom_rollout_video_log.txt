@@ -1,0 +1,1 @@
+Saved rollout MP4 at path ./rollouts/2026_08_24/2026_08_24-17_59_57--episode=1--success=True--task=pick_up_the_black_bowl_from_the_center_of_the_tabl.mp4

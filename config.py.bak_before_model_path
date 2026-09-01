@@ -2,7 +2,7 @@ class Config:
     model_family: str = "openvla"
 
     # 模型路径
-    pretrained_checkpoint: str = "/root/data/openvla_work/models/openvla-7b-finetuned-libero-spatial"
+    pretrained_checkpoint: str = "/mnt/workspace/openvla-7b-finetuned-libero-spatial"
     # pretrained_checkpoint: str = "/mnt/workspace/openvla-7b"
 
     # lora 权重路径

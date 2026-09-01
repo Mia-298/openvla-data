@@ -20,10 +20,12 @@ from prismatic.vla.datasets.rlds.utils.data_utils import save_dataset_statistics
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class FinetuneConfig:
-    vla_path: str = "/mnt/workspace/openvla-7b"                            # Path to OpenVLA model (on HuggingFace Hub)
+    # vla_path: str = "/mnt/workspace/openvla-7b"                            # Path to OpenVLA model (on HuggingFace Hub)
+    vla_path : str = "/root/data/openvla_work/models/openvla-7b-finetuned-libero-spatial"
+
 
     # RLDS 数据集目录
-    data_root_dir: Path = Path("/mnt/workspace/Libero_RLDS")
+    data_root_dir: Path = Path("/root/data/openvla_work/Libero_RLDS")
     dataset_name: str = "libero_spatial_no_noops"
 
     # 结果保存目录
@@ -33,16 +35,17 @@ class FinetuneConfig:
     batch_size: int = 1
     learning_rate: float = 5e-4
     use_lora: bool = True                                           # Whether to use LoRA fine-tuning
-    lora_rank: int = 32                                             # Rank of LoRA weight matrix
+    lora_rank: int = 1                                             # Rank of LoRA weight matrix
     lora_dropout: float = 0.05                                      # Dropout applied to LoRA weights
     use_quantization: bool = False                                  # Whether to 4-bit quantize VLA for LoRA fine-tuning
                                                                     #   => CAUTION: Reduces memory but hurts performance
+    # # 微调的最大时间步数（类似epoch）
+    # max_steps: int = 200_000
 
-    # 微调的最大时间步数（类似epoch）
-    max_steps: int = 200_000
-
-    # 保存检查点的间隔
-    save_steps: int = 1000
+    # # 保存检查点的间隔
+    # save_steps: int = 1000
+    max_steps: int = 10
+    save_steps: int = 5
 
     # 梯度累积
     """
@@ -97,6 +100,8 @@ def finetune(cfg: FinetuneConfig) -> None:
         )
 
     # 加载模型和 processor
+    # professer负责处理输入数据：文字 prompt → input_ids，图像 → pixel_values
+    # vla加载的是预训练模型
     processor = AutoProcessor.from_pretrained(cfg.vla_path, trust_remote_code=True)
     vla = AutoModelForVision2Seq.from_pretrained(
         cfg.vla_path,
@@ -113,6 +118,7 @@ def finetune(cfg: FinetuneConfig) -> None:
         vla = vla.to(device)
 
     # 构建 LoRA 模型
+    # lora：用于微调模型，在原始模型的基础上添加少量可训练的低秩矩阵
     if cfg.use_lora:
         lora_config = LoraConfig(
             r=cfg.lora_rank,
@@ -128,12 +134,12 @@ def finetune(cfg: FinetuneConfig) -> None:
     trainable_params = [param for param in vla.parameters() if param.requires_grad]
     optimizer = AdamW(trainable_params, lr=cfg.learning_rate)
 
-    # Create Action Tokenizer
+    # Create Action Tokenizer： 编码或解码“模型要预测的机器人动作”
     # 将每个维度上的连续机器人动作，离散化为N个区间，并将其映射到最少使用的 token
     # processor.tokenizer 是预训练的分词器，用于将索引映射回词汇
     action_tokenizer = ActionTokenizer(processor.tokenizer)
 
-    # 加载微调数据集
+    # 加载RLDS 格式数据集：微调数据集
     # batch_transform 将 RLDS 格式数据集转换为模型输入形式
     batch_transform = RLDSBatchTransform(
         action_tokenizer,
@@ -174,7 +180,7 @@ def finetune(cfg: FinetuneConfig) -> None:
 
         for batch_idx, batch in enumerate(dataloader):
 
-            # 自动混合精度
+            # 前向传播：模型预测每个位置下一个 token 的概率还会和真实动作序列对比计算交叉熵损失
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 output: CausalLMOutputWithPast = vla(
                     input_ids=batch["input_ids"].to(device),
@@ -184,6 +190,7 @@ def finetune(cfg: FinetuneConfig) -> None:
                 )
                 loss = output.loss
 
+            # 反向传播：梯度主要用于更新 LoRA 矩阵参数（也就是训练的过程）
             # 梯度累积时，需要先积累梯度（并归一化），达到累积轮数后再更新参数
             normalized_loss = loss / cfg.grad_accumulation_steps
             normalized_loss.backward()

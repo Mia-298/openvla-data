@@ -55,7 +55,7 @@ def eval_libero():
 
     assert config.unnorm_key in model.norm_stats, f"Action un-norm key {config.unnorm_key} not found in VLA `norm_stats`!"
     
-    # 加载 processor , checkpoint =  "/root/data/openvla_work/models/openvla-7b-finetuned-libero-spatial"
+    # 加载 processor , checkpoint =  "/mnt/workspace/openvla-7b-finetuned-libero-spatial"
     processor = AutoProcessor.from_pretrained(config.pretrained_checkpoint, trust_remote_code=True)
     
 
