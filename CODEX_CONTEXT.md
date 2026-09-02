@@ -191,3 +191,185 @@ This file stores concise cross-device task context.
 - Next step: 继续逐行阅读predict_action依赖的forward、prepare_inputs_for_generation和configuration_prismatic，完成processor输入shape与视觉token插入位置的验证；随后进入ActionTokenizer/训练标签编码。
 - Summary: 当前项目的models(backup)已补齐源码：processing_prismatic负责图像缩放/letterbox/ToTensor/Normalize、文本tokenizer和BatchFeature组装；modeling_prismatic负责视觉特征提取、投影、插入语言模型、generate及动作token反解码。
 
+## 2026-09-02T15:36:33+08:00
+
+- Keywords: OpenVLA, get_action_dim, generate, 自回归生成, generated_ids, KV cache
+- Progress: 已解释predict_action中的generated_ids调用：get_action_dim先校验unnorm_key并返回q01长度，用于决定生成动作token数量；generate是Transformers继承的自回归生成入口，首次forward融合视觉patch和文本，后续利用past_key_values缓存逐token生成；generated_ids包含原prompt和新动作token，predict_action截取末尾动作维度数量进行解码。
+- Next step: 独立画出generate一次推理的时间序列：初始多模态forward、每轮logits选token、追加token、KV cache；再阅读forward和prepare_inputs_for_generation的参数流。
+- Summary: 掌握了动作维度与token生成数量的关系，以及predict_action如何借助Transformers.generate完成动作token预测。
+
+## 2026-09-02T15:38:12+08:00
+
+- Keywords: OpenVLA, generate与forward, 自回归, past_key_values, KV cache
+- Progress: 澄清generate不是一次forward：generate是高层自回归生成循环，生成7个动作token通常需要7次forward；首次forward处理完整多模态输入，后续forward通过past_key_values只处理新token并复用缓存。
+- Next step: 结合prepare_inputs_for_generation逐步画出第1到第7个token的input_ids长度、past_key_values和pixel_values传递方式。
+- Summary: 理解了高层generate调用与底层forward调用的区别，以及OpenVLA动作token生成中的KV cache机制。
+
+## 2026-09-02T15:40:01+08:00
+
+- Keywords: OpenVLA, LIBERO 7维动作, action token与动作维度, 自回归依赖, env.step
+- Progress: 澄清7维动作的含义：7表示一个action向量的分量数量，不是7个env.step或7个独立控制动作；generate通常逐次预测7个token，每个token对应训练动作序列中的一个维度，后续token条件于前面token，最终组装成一个7维action并一次传入env.step。
+- Next step: 阅读ActionTokenizer或数据变换源码，确认7个动作分量的确切顺序及每个连续值如何离散成token。
+- Summary: 建立了动作维度、生成token数量、forward次数和环境控制步之间的区别。
+
+## 2026-09-02T15:46:13+08:00
+
+- Keywords: OpenVLA, 自回归token, logits, dx, 动作分量
+- Progress: 澄清每次forward的输出：语言模型会为序列位置产生词表logits，但generate在推理时只使用最后位置来选择下一个token；第一个新token对应动作序列第一个分量如dx，后续token依次对应其他分量，并条件于图像、prompt和历史动作token，不会每次都重新输出完整7维动作。
+- Next step: 在源码或最小例子中打印generate每轮的input_ids、logits形状和选出的token，验证第一个token与后续token的自回归关系。
+- Summary: 区分了每轮forward的next-token预测、完整动作向量组装以及词表logits的概念。
+
+## 2026-09-02T15:47:32+08:00
+
+- Keywords: OpenVLA, generated_ids切片, predicted_action_token_ids, batch维, sequence维
+- Progress: 已解释generated_ids[0, -get_action_dim(unnorm_key):].cpu().numpy()：先取batch中的第0条序列，再取序列末尾action_dim个新生成token，移到CPU并转为NumPy；结果是动作token id数组而非连续动作，后续还要经过bin解码和q01/q99反归一化。
+- Next step: 继续逐行解释discretized_actions、normalized_actions和actions三步，手算一个token到连续动作的示例。
+- Summary: 掌握了generated_ids中prompt token与动作token的切分方式，以及PyTorch到NumPy的转换原因。
+
+## 2026-09-02T15:53:06+08:00
+
+- Keywords: OpenVLA, discretized_actions, token id反解码, bin索引, np.clip
+- Progress: 已解释predict_action中两步离散动作解码：vocab_size-token_id利用OpenVLA动作token的反向编码得到动作编号；减1转换为从0开始的bin索引；np.clip将索引限制在bin_centers的合法范围，避免异常token造成越界。
+- Next step: 继续解释bin_centers查表得到normalized_actions，以及mask/q01/q99反归一化如何恢复实际动作值。
+- Summary: 理解了动作token id到离散bin索引的映射和边界保护。
+
+## 2026-09-02T15:57:07+08:00
+
+- Keywords: OpenVLA, cpu.numpy, token id与连续动作, 数据类型转换, 语义转换
+- Progress: 澄清.cpu().numpy()只完成设备/数据类型转换：从GPU上的torch LongTensor切片并变成CPU上的NumPy整数数组，数值仍是动作token id；后续vocab_size减法、bin查表和q01/q99反归一化才完成动作语义解码。
+- Next step: 继续区分动作解码中的三类变化：张量容器转换、token编号到bin索引、bin索引到连续控制值。
+- Summary: 理解了数据结构转换不等于动作数值语义转换。
+
+## 2026-09-02T15:58:32+08:00
+
+- Keywords: OpenVLA, normalized_actions, bin_centers, NumPy高级索引, [-1,1]
+- Progress: 已解释normalized_actions = bin_centers[discretized_actions]：将每个动作分量的离散bin索引作为数组索引，查出对应bin中心浮点值；输入输出形状通常都是[7]，结果位于[-1,1]，尚未经过q01/q99恢复物理动作尺度。
+- Next step: 继续解释q01/q99反归一化公式及mask分支，明确哪些维度会被恢复到数据集动作范围。
+- Summary: 理解了离散bin索引到归一化连续动作值的查表过程。
+
+## 2026-09-02T16:00:02+08:00
+
+- Keywords: OpenVLA, q01, q99, mask, np.where, 动作反归一化
+- Progress: 已解释predict_action末段：get_action_stats按unnorm_key取得动作统计；mask缺省时全部维度参与反归一化；q01/q99转为数组作为每维low/high；线性公式将[-1,1]映射到[q01,q99]，np.where逐维选择缩放值或保留normalized_actions。
+- Next step: 读取模型配置中的实际libero_spatial action统计，手算一个维度的反归一化，并区分模型输出动作与LIBERO夹爪adapter。
+- Summary: 掌握了OpenVLA基于分位数统计的动作反归一化和mask逐维控制。
+
+## 2026-09-02T16:03:39+08:00
+
+- Keywords: OpenVLA, unnorm_key, 数据集统计, q01/q99, 动作分布, 机器人型号
+- Progress: 澄清unnorm_key不是机械臂型号，而是model.norm_stats中的数据集/动作统计键，用于选择动作维度和q01/q99反归一化；它不切换checkpoint、任务或机器人。模型输出受离散bin和统计区间约束到数值范围，但不是训练动作集合的查表，可能生成训练中未精确出现的组合或错误动作，q01/q99也不是安全限位。
+- Next step: 阅读训练数据动作归一化和ActionTokenizer编码过程，确认训练时动作如何进入bin，以及统计键、环境动作空间和机器人控制器之间的边界。
+- Summary: 理解了unnorm_key的元数据作用与模型输出分布学习、硬范围约束、机器人安全约束之间的区别。
+
+## 2026-09-02T16:14:40+08:00
+
+- Keywords: OpenVLA, dataset_statistics, q01/q99, RLDSDataset, ActionTokenizer, 训练数据准备
+- Progress: 已说明q01/q99/mask通常在训练前或数据加载阶段由RLDSDataset统计动作数据得到，训练时用于动作归一化和ActionTokenizer编码，保存checkpoint时由save_dataset_statistics写入；predict_action只读取统计并反归一化。
+- Next step: 基于当前LIBERO dataset_statistics.json手算一个位置维度和gripper维度的归一化/反归一化，随后阅读ActionTokenizer源码确认训练侧编码细节。
+- Summary: 建立了动作统计量从数据集准备到训练编码、checkpoint保存、推理反归一化的完整链路。
+
+## 2026-09-02T16:15:34+08:00
+
+- Keywords: OpenVLA, action norm mask, 反归一化开关, gripper, attention_mask区分
+- Progress: 解释action_norm_stats中的mask：它是逐动作维度的反归一化开关，不是attention_mask或loss mask；True时用q01/q99恢复尺度，False时保留normalized_actions；若缺失则创建与q01同形状的全True数组。当前LIBERO通常前6维True、夹爪维False。
+- Next step: 继续结合当前dataset_statistics.json手算mask为True/False的两个维度，理解夹爪为何保留原范围并在eval.py额外适配。
+- Summary: 区分了动作反归一化mask与文本注意力mask及训练loss mask，并理解其逐维控制作用。
+
+## 2026-09-02T16:17:19+08:00
+
+- Keywords: OpenVLA, q01/q99, action_high/action_low, 统计范围, 动作安全限位
+- Progress: 澄清action_high/action_low：从action统计中读取q99和q01并转成NumPy向量，分别作为各动作维度反归一化映射的上/下端点；mask为True时[-1,1]映射到[q01,q99]。它是数据分布统计范围和解码范围，不是机器人硬安全限位。
+- Next step: 结合实际libero_spatial的q01/q99数组计算一个dx和旋转维度的反归一化结果，并继续区分统计范围、控制器输入范围和安全约束。
+- Summary: 理解了q01/q99在反归一化中的端点作用及其与物理限位的区别。
+
+## 2026-09-02T16:23:52+08:00
+
+- Keywords: Day1复盘, eval学习记录, processor, predict_action, action contract, Day2准备
+- Progress: 阅读了用户真正的记录 /home/mia/data/Note/Mia/vla/openvla/eval学习.md：predict_action的token截取、bin映射、bin_centers、mask和q01/q99已理解；但Day1完整验收仍缺processor内部步骤与输入shape、action adapter/env.step、done/success/MAX_STEPS区别、单位/坐标系清单。
+- Next step: 先补齐Day1代码地图：记录processor输入输出contract、7维action到env.step的夹爪适配和未知项；完成后开始Day2，独立实现q01/q99归一化、裁剪、反归一化和7维batch测试。
+- Summary: Day1核心predict_action阅读基本达标，但整套eval流程记录尚未完整；不修改用户学习记录，只给出补漏清单。
+
+## 2026-09-02T16:41:37+08:00
+
+- Keywords: OpenVLA, processor输入, prompt字符串, input_ids输出, 图文输入
+- Progress: 澄清processor接口：eval.py中processor的文本输入就是构造出的prompt字符串，图像是第二个输入；input_ids和attention_mask是processor对prompt tokenizer后的输出，不是调用processor时直接传入的原始输入。
+- Next step: 在Day1记录中补充processor的输入/输出术语和shape，避免混淆prompt、token id与模型输入BatchFeature。
+- Summary: 区分了processor原始输入(prompt字符串和图像)与处理后输出(input_ids、attention_mask、pixel_values)。
+
+## 2026-09-02T16:43:48+08:00
+
+- Keywords: OpenVLA, PrismaticProcessor.__call__, tokenizer, input_ids, attention_mask
+- Progress: 定位input_ids/attention_mask源码：PrismaticProcessor.__call__第213-215行调用self.tokenizer(text, ...)，返回text_inputs；第221行将text_inputs与pixel_values合并为BatchFeature。图像处理在第212行。
+- Next step: 继续阅读self.tokenizer的Transformers实现和模型目录tokenizer.json/tokenizer.model，理解字符串如何切分成token id及attention mask。
+- Summary: 已精确定位prompt字符串到input_ids/attention_mask的源码调用位置。
+
+## 2026-09-02T16:48:25+08:00
+
+- Keywords: OpenVLA, AutoProcessor, from_pretrained, PrismaticProcessor, trust_remote_code, 工厂类
+- Progress: 澄清AutoProcessor关系：Transformers中的AutoProcessor.from_pretrained是自动加载器，读取模型目录配置并在trust_remote_code=True时加载本地/远程自定义PrismaticProcessor；变量processor是PrismaticProcessor实例，其__call__再调用self.tokenizer和self.image_processor。
+- Next step: 阅读模型目录preprocessor_config.json及AutoProcessor加载结果，打印type(processor)、type(processor.tokenizer)、type(processor.image_processor)验证类实例。
+- Summary: 区分了Transformers的AutoProcessor加载入口与OpenVLA具体PrismaticProcessor实现。
+
+## 2026-09-02T16:49:49+08:00
+
+- Keywords: OpenVLA, __call__, PrismaticProcessor, Python可调用对象, image_processor, tokenizer
+- Progress: 确认processor执行入口：processor(prompt, image)通过Python可调用对象机制触发PrismaticProcessor.__call__；其内部image_processor(images, ...)触发PrismaticImageProcessor.__call__并进入preprocess，tokenizer(text, ...)触发Hugging Face tokenizer的__call__。
+- Next step: 继续区分processor.__call__、model.forward、model.generate和predict_action之间的调用关系。
+- Summary: 理解了processor括号调用实际对应__call__方法及其内部嵌套调用。
+
+## 2026-09-02T16:52:44+08:00
+
+- Keywords: OpenVLA, PrismaticProcessor, BatchFeature, BatchEncoding, batch对齐, pixel_values, input_ids
+- Progress: 已解释PrismaticProcessor.__call__的组装逻辑：image_processor返回并提取pixel_values，tokenizer返回text_inputs；通过比较两者shape[0]确保每个文本和图像按batch一一对应；最后用字典展开合并文本字段与pixel_values，封装为可.to(device,dtype)的BatchFeature。
+- Next step: 继续阅读BatchFeature.to和model.forward接收input_ids/attention_mask/pixel_values的参数流，串起processor输出到视觉backbone和语言模型。
+- Summary: 理解了图像/文本双分支预处理结果的batch校验和统一封装。
+
+## 2026-09-02T17:06:23+08:00
+
+- Keywords: OpenVLA, attention_mask, input_ids, padding, visual patch mask, causal attention
+- Progress: 解释了attention_mask与input_ids的关系：两者按序列位置一一对应、shape相同；input_ids承载token编号，attention_mask只标记有效位置(1)和padding(0)，不承载文本语义。Prismatic forward插入视觉patch后为视觉位置创建全1 mask并与文本mask拼接。
+- Next step: 继续阅读attention_mask在语言模型注意力中的作用，并区分padding mask、causal mask和视觉patch mask。
+- Summary: 理解了token内容与有效性标记的区别，以及多模态序列拼接后的mask扩展。
+
+## 2026-09-02T17:09:58+08:00
+
+- Keywords: OpenVLA, input_ids, token id, token编码, embedding
+- Progress: 澄清input_ids：它存储token对应的词表整数ID/编码，不存储token字符串本身；tokenizer可用convert_ids_to_tokens或decode还原文本片段，模型随后通过input embedding把ID查表为向量。
+- Next step: 继续理解tokenizer的词表映射和model.get_input_embeddings()(input_ids)如何将整数ID转换为语言模型embedding。
+- Summary: 区分了token文本片段、token id编码和embedding向量。
+
+## 2026-09-02T17:14:34+08:00
+
+- Keywords: Day1复盘, eval学习笔记, processor, predict_action, action adapter, Day2准入
+- Progress: 复查更新后的 /home/mia/data/Note/Mia/vla/openvla/eval学习.md：processor和predict_action主干已基本正确；仍需修正unnorm_key表述、generate通常7次但可能提前结束、action可能并非全部反归一化，并补充processor实际类型/shape、夹爪adapter/env.step、done与success/MAX_STEPS及流程图。
+- Next step: 先补齐4个Day1最小修正项后进入Day2：action contract、unnorm_key定义、generate表述、done/success区别；Day2独立完成q01/q99归一化/裁剪/反归一化与7维batch测试。
+- Summary: 更新学习笔记已覆盖predict_action核心解码链路，但尚未完全满足Day1完整eval代码地图的验收标准。
+
+## 2026-09-02T17:22:25+08:00
+
+- Keywords: Day1验收通过, eval学习笔记, Day2开始, get_action_dim, done, action adapter
+- Progress: 复查最新eval学习笔记：已补齐processor输入输出shape、token解码、unnorm_key和主要流程，达到可以进入Day2的程度；仍建议修正get_action_dim表述为动作维度n、generate生成n个token，说明done是环境终止标志且success可由自定义checker判定，并补一个ASCII流程图及action adapter细节。
+- Next step: 正式开始Day2：独立实现q01/q99归一化、裁剪、反归一化；先处理ndarray、切片、广播、dtype和shape，再写7维动作与batch测试。
+- Summary: Day1学习记录已基本达标，允许进入Day2；剩余问题是表达和流程图收尾，不影响开始NumPy动作归一化任务。
+
+## 2026-09-02T17:31:30+08:00
+
+- Keywords: Day2开始, NumPy动作归一化, q01/q99, np.clip, batch shape
+- Progress: 已开始第2天：明确任务不是简单调用np.array，而是独立实现逐维q01/q99归一化、越界裁剪和反归一化函数；人工数字只用于测试，需覆盖7维、batch、越界和q01=q99。
+- Next step: 用户独立编写numpy_action_norm.py：先实现clip、normalize、unnormalize及断言测试，再提交代码进行检查。
+- Summary: Day1基本验收通过，正式进入Day2 NumPy动作归一化实践。
+
+## 2026-09-02T17:34:55+08:00
+
+- Keywords: Day2, q01, q99, 分位数, percentile
+- Progress: 明确q01是动作数据第1百分位(q=0.01)，q99是第99百分位(q=0.99)，两者按每个动作维度独立统计，用作归一化映射端点而非机器人硬限位。
+- Next step: 在numpy_action_norm.py中用人工动作数组计算或指定q01/q99，并验证边界与越界裁剪。
+- Summary: 理解了q01/q99的统计学含义及其在动作归一化中的作用。
+
+## 2026-09-02T17:38:32+08:00
+
+- Keywords: Codex上下文记录, AGENTS.md, 跨设备同步, OpenVLA Day2
+- Progress: 已读取当前项目AGENTS.md：要求每次实质性请求完成后更新CODEX_CONTEXT.md，记录需简洁且不得包含密码、token、私钥或模型凭据；VLA源资料目录未发现独立AGENTS.md。用户明确要求后续持续记录对话，当前学习已进入Day2的NumPy动作归一化准备阶段。
+- Next step: 后续每次OpenVLA/VLA学习实质性对话完成后，继续用update_codex_context.py记录关键词、完成内容、开放问题和下一步；当前下一步仍是独立编写numpy_action_norm.py并完成q01/q99、裁剪、反归一化、7维与batch测试。
+- Summary: 确认了项目级上下文记录规则和跨设备读取目标，并记录了用户要求持续保存学习对话上下文。
+
