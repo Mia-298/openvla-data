@@ -121,3 +121,73 @@ This file stores concise cross-device task context.
 - Next step: 将usereval.py配置拆成ENV_SUITE='libero_goal'、MODEL_UNNORM_KEY='libero_spatial'进行跨套件实验；打印任务语言并确认动作统计存在，再单独处理Goal任务的TARGET_OBJECT和成功逻辑。
 - Summary: 用户质疑模型和测评不应耦合，正在理解OpenVLA跨任务评测与动作统计元数据的区别。
 
+## 2026-09-02T11:19:35+08:00
+
+- Keywords: VLA学习路线, TODO定位, 项目文件
+- Progress: 检查了工作区全部可见和隐藏文件及 TODO/路线关键词；未发现独立的 TODO 学习路线文件，已确认教程目录中的学习建议路线.pdf是普通PDF路线文档。
+- Next step: 如果用户指的是工作区之外的TODO文件，请提供文件名或放入项目目录后再读取。
+- Summary: 用户澄清所指是TODO形式的VLA学习计划，不是教程/学习建议路线.pdf。当前项目内未定位到该TODO文件。
+
+## 2026-09-02T11:21:41+08:00
+
+- Keywords: VLA学习路线, TODO定位, 双工作区检查
+- Progress: 重新检查了主项目和新增的可访问工作区；主项目仍无独立TODO学习路线文件，新增工作区为空，关键词命中仅为上下文记录。
+- Next step: 等待用户提供TODO文件名、路径或将文件放入项目后读取。
+- Summary: 用户再次询问当前是否能看到TODO形式的VLA学习路线；截至本次检查仍未定位到该文件。
+
+## 2026-09-02T11:23:19+08:00
+
+- Keywords: VLA学习路线, Markdown文件, 文件同步
+- Progress: 再次用find核对主项目和新增工作区；主项目仅有AGENTS.md、CODEX_CONTEXT.md、README.md，新增工作区没有文件，未发现用户所说的VLA TODO Markdown。
+- Next step: 请确认Markdown文件是否已上传到当前项目，或提供其准确文件名/路径后继续读取。
+- Summary: 用户认为新增文件中应有md文件；当前可访问文件系统中仍未出现该文件。
+
+## 2026-09-02T11:25:13+08:00
+
+- Keywords: VLA_8_WEEK_TODO.md, VLA八周计划, 外部学习目录
+- Progress: 根据用户提供的路径读取了 /home/mia/data/ros_backup/ros/learn/md/markdown/vla/VLA_8_WEEK_TODO.md；确认其为VLA 8周学习与求职准备TODO，并读取了vla_learning_plan_chat.md和openvla学习.md的部分内容。
+- Next step: 以VLA_8_WEEK_TODO.md作为当前学习主线，后续按周或按天推进并同步完成产物。
+- Summary: 用户提供了外部目录的准确路径，已定位到此前未挂载工作区中的VLA学习TODO文件。
+
+## 2026-09-02T11:27:44+08:00
+
+- Keywords: VLA源文件夹, 优先扫描, 学习资料
+- Progress: 用户明确要求：以后涉及VLA学习资料、TODO、Markdown或路线规划时，优先扫描 /home/mia/data/ros_backup/ros/learn/md/markdown/vla，再检查当前项目工作区。
+- Next step: 后续VLA相关请求先检查源文件夹，再检查openvla-data工作区。
+- Summary: 已确认VLA学习资料源目录及后续扫描优先级。
+
+## 2026-09-02T11:38:17+08:00
+
+- Keywords: OpenVLA, Day1, closed-loop eval, observation, processor, predict_action, action adapter, env.step
+- Progress: 已核对 eval.py、usereval.py、utils.py、config.py 和本机 remote-code：确认闭环为观测图像与任务prompt进入processor，predict_action生成7个动作token并解码、按unnorm_key使用q01/q99反归一化，再经LIBERO夹爪适配后调用env.step；明确前6维是末端位姿增量语义，不能把eval.py中的旧注释当作7关节角，done也需与自定义success判定区分。
+- Next step: 完成Day1产物：画出带shape、单位、坐标系和不确定项的流程图；下一步独立实现q01/q99动作归一化/反归一化及边界测试。
+- Summary: 今天建立了OpenVLA-LIBERO评测的代码地图和动作语义边界：observation是环境状态字典中的相机图像，processor负责图像和prompt预处理，predict_action内部完成token生成、连续动作解码和反归一化，action adapter负责夹爪接口转换，env.step推进仿真并返回下一观测、奖励、终止信息。
+
+## 2026-09-02T11:51:55+08:00
+
+- Keywords: OpenVLA, predict_action源码, remote code, modeling_prismatic.py
+- Progress: 已定位predict_action：eval.py第145行和usereval.py第125行是调用；实际定义在OpenVLA remote code的modeling_prismatic.py第506-536行，内部包含generate、动作token解码和q01/q99反归一化。
+- Next step: 继续阅读modeling_prismatic.py中的predict_action，并定位ActionTokenizer/训练数据动作编码逻辑，核对token到连续动作的映射。
+- Summary: 明确了项目脚本与模型实现的边界：eval脚本负责组织闭环，predict_action由trust_remote_code加载的OpenVLA模型类实现。
+
+## 2026-09-02T11:58:49+08:00
+
+- Keywords: OpenVLA, 当前项目, predict_action, 外部checkpoint, trust_remote_code
+- Progress: 纠正源码路径：/home/mia/data/openvla-data中没有predict_action定义，eval.py/usereval.py仅负责调用；当前模型实现来自配置指向的外部/root checkpoint或其运行时缓存，之前引用的Trash旧备份路径不属于当前项目。
+- Next step: 在实际运行OpenVLA的环境中用inspect.getsourcefile(model.predict_action)定位当前实例真实源码，再继续阅读实现。
+- Summary: 已核实当前项目与模型源码边界，避免将旧备份目录误认为当前工程源码。
+
+## 2026-09-02T12:00:00+08:00
+
+- Keywords: OpenVLA, 当前模型目录, modeling_prismatic.py, predict_action
+- Progress: 用户确认云端模型目录 ~/autodl-tmp/data/openvla_work/models/openvla-7b-finetuned-libero-spatial 内包含 modeling_prismatic.py；当前predict_action实现应直接从该本地模型目录加载，而非旧备份路径。
+- Next step: 在云端模型目录中阅读 modeling_prismatic.py 的 predict_action，并继续追踪 ActionTokenizer/动作token映射及 norm_stats。
+- Summary: 已根据用户提供的目录列表确认当前模型源码位置：模型目录内包含 modeling_prismatic.py、configuration_prismatic.py 和 processing_prismatic.py。
+
+## 2026-09-02T12:08:18+08:00
+
+- Keywords: OpenVLA, processor源码, PrismaticImageProcessor, PrismaticProcessor, predict_action, generate, 多模态embedding
+- Progress: 已找到并阅读当前项目 models(backup)/processing_prismatic.py 与 modeling_prismatic.py：processor由图像处理器和tokenizer组成，输出pixel_values/input_ids/attention_mask；模型forward把视觉patch经过backbone和projector后插入BOS后，再交给语言模型；predict_action生成7个动作token、解码为[-1,1] bin中心，并按q01/q99反归一化返回numpy动作。
+- Next step: 继续逐行阅读predict_action依赖的forward、prepare_inputs_for_generation和configuration_prismatic，完成processor输入shape与视觉token插入位置的验证；随后进入ActionTokenizer/训练标签编码。
+- Summary: 当前项目的models(backup)已补齐源码：processing_prismatic负责图像缩放/letterbox/ToTensor/Normalize、文本tokenizer和BatchFeature组装；modeling_prismatic负责视觉特征提取、投影、插入语言模型、generate及动作token反解码。
+
