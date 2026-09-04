@@ -415,3 +415,101 @@ This file stores concise cross-device task context.
 - Next step: 先理解 tensor 与 NumPy ndarray 的对应关系、shape/device/dtype 查看和基本运算；然后在可用 PyTorch 环境中练习 requires_grad 与简单前向计算。
 - Summary: Day3 已开始，当前从 tensor 基础进入，未修改用户练习文件。
 
+## 2026-09-04T16:46:46+08:00
+
+- Keywords: VLA学习, Day3, PyTorch tensor, tensor打印, torch.Size, float32, cpu
+- Progress: 解释用户运行 Day3 示例的输出：tensor(...) 是 PyTorch Tensor 的打印类型标签；torch.Size([2,2]) 是形状，torch.float32 是数据类型，cpu 是存储设备。
+- Next step: 继续学习 requires_grad、计算图和 backward()，用简单标量函数观察梯度。
+- Summary: 用户已成功运行并看到 PyTorch tensor 基础输出，当前正在建立 Tensor 与普通列表/NumPy 数组的区别。
+
+## 2026-09-04T16:51:43+08:00
+
+- Keywords: VLA学习, Day3, PyTorch Tensor, Python list, NumPy ndarray
+- Progress: 解释 Tensor 与普通数组的区别：区分 Python list 和 NumPy ndarray；Tensor 具备 GPU 运算和 autograd 能力，NumPy ndarray 主要用于 CPU 数值计算，Python list 不是专用数值数组。
+- Next step: 继续通过 requires_grad 和计算图理解 Tensor 的自动求导能力。
+- Summary: 用户正在建立 PyTorch Tensor 与 Python 列表、NumPy 数组之间的概念边界。
+
+## 2026-09-04T16:54:13+08:00
+
+- Keywords: VLA学习, Day3, PyTorch, CUDA, device, requires_grad, backward
+- Progress: 诊断云端 forwardlearn.py：输出 cpu 表明当前 Tensor 位于 CPU；smolvla-cu118 环境名不等于已使用 GPU。backward 报错的直接原因是计算结果不需要梯度，和 GPU 无关，需为参与计算的叶子 Tensor 设置 requires_grad=True。
+- Next step: 在云端检查 torch.cuda.is_available()、torch.version.cuda 和 GPU 名称；用 device-aware Tensor 运行 x*x.backward()，确认 x.grad 后继续学习计算图。
+- Summary: 第三天遇到的慢速与 backward 错误已拆分为设备选择问题和梯度开关问题。
+
+## 2026-09-04T16:56:52+08:00
+
+- Keywords: VLA学习, Day3, backward, 自动求导, 梯度, 计算图
+- Progress: 解释 y.backward()：它启动 PyTorch 的反向自动求导，沿计算图计算 y 对 requires_grad Tensor 的梯度，并写入叶子 Tensor 的 .grad；以 y=x*x、x=3 为例得到 x.grad=6。
+- Next step: 继续讲计算图、grad_fn、叶子 Tensor 与 requires_grad，并说明训练循环中的 zero_grad/backward/step 顺序。
+- Summary: 用户正在学习 PyTorch 自动求导入口 backward() 的含义。
+
+## 2026-09-04T17:00:39+08:00
+
+- Keywords: VLA学习, Day3, PyTorch, backward, 偏导数, 梯度
+- Progress: 用户已用 z=x1^2+2*x2 的例子理解 backward() 可同时计算多个变量的偏导；x1=3 时 dz/dx1=6，x2=1 时 dz/dx2=2。
+- Next step: 继续解释计算图和链式法则，再连接到 loss.backward() 与参数更新。
+- Summary: 用户已确认 PyTorch backward() 在多变量标量函数上的作用，本例对应偏导数计算。
+
+## 2026-09-04T17:01:20+08:00
+
+- Keywords: VLA学习, Day3, 前向传播, 反向传播, 优化器, 线性回归, loss
+- Progress: 用户已理解多变量偏导和 backward()，开始学习前向传播、反向传播、优化器三者在训练循环中的完整关系。
+- Next step: 先用手写 w*x+b 的线性回归循环运行训练，观察 loss、w、b 的变化，再解释 zero_grad/backward/step。
+- Summary: Day3 从自动求导进入训练核心流程：prediction -> loss -> backward -> optimizer step。
+
+## 2026-09-04T17:05:19+08:00
+
+- Keywords: VLA学习, Day3, SGD, optimizer, 学习率, 参数更新
+- Progress: 解释 torch.optim.SGD([w,b], lr=0.01)：创建随机梯度下降优化器，将 w、b 注册为待更新参数，学习率 0.01 控制每次沿梯度反方向移动的步长。
+- Next step: 用一次具体的 w.grad/b.grad 数值手算 optimizer.step() 前后的参数变化，再继续完整训练循环。
+- Summary: 用户正在理解优化器构造语句及其参数含义。
+
+## 2026-09-04T17:08:55+08:00
+
+- Keywords: VLA学习, Day3, 梯度下降, loss, 预测误差, 参数梯度, 全局最小值
+- Progress: 解释参数梯度的意义：优化器最小化损失函数，梯度是损失对参数的偏导，不等于直接的预测误差；在线性回归 MSE 中，w 的梯度会将残差乘以输入后求平均，b 的梯度是残差平均。
+- Next step: 用 y_pred=w*x+b 的具体数值手算一次 loss、dw、db 和参数更新，巩固梯度下降方向与学习率作用。
+- Summary: 用户开始理解为什么用梯度更新参数，以及预测误差、loss、梯度和全局最小点之间的区别。
+
+## 2026-09-04T17:19:30+08:00
+
+- Keywords: VLA学习, Day3, 深度学习, 监督学习, 强化学习, 梯度下降, 行为克隆
+- Progress: 澄清当前学习内容属于深度学习基础中的监督学习：用输入和真实标签计算 loss，再通过梯度下降更新参数；不是强化学习。线性回归用于理解 PyTorch 训练机制。
+- Next step: 继续完成监督学习训练循环，再区分 OpenVLA 的行为克隆训练、LIBERO 闭环评测与真正强化学习的关系。
+- Summary: 用户已识别当前梯度下降练习与强化学习的区别，当前课程先学习监督学习训练基础。
+
+## 2026-09-04T17:24:57+08:00
+
+- Keywords: VLA学习, Day3, optimizer, 优化器, torch.optim.SGD
+- Progress: 确认 optimizer 是优化器对象的常用变量名，由 torch.optim.SGD([w,b], lr=0.01) 创建；它根据参数梯度执行清零和更新。
+- Next step: 继续区分优化器对象、参数梯度和 loss，完成一次训练循环的逐行理解。
+- Summary: 用户已确认 optimizer 的中文含义和其在 PyTorch 训练中的角色。
+
+## 2026-09-04T17:29:37+08:00
+
+- Keywords: VLA学习, Day3, loss.item, 训练日志, epoch, w, b, 收敛
+- Progress: 解释线性回归输出列顺序为 epoch、loss、w、b；确认 loss 在 800 到 900 次从 0.000113 降至 0.000062，并非增大。loss.item() 只负责将当前 Tensor 标量转为 Python 数字，按每100次打印由 if 条件控制。
+- Next step: 继续观察 loss 收敛、学习率和参数 w/b 的关系，随后学习 zero_grad、backward、step 的梯度累积细节。
+- Summary: 用户已运行线性回归训练并开始阅读训练日志，当前需要区分损失值与参数值及日志频率。
+
+## 2026-09-04T17:36:10+08:00
+
+- Keywords: VLA学习, Day4, 注意力机制, QKV, softmax, scaled dot-product attention
+- Progress: 开始 Day4：已核对 TODO，目标是理解 Q/K/V、缩放、mask、softmax 并实现支持 batch 和 mask 的 scaled dot-product attention；test 目录暂无注意力练习文件。
+- Next step: 先用二维小例子理解 Q 与 K 的相似度、softmax 权重和 V 的加权求和，再推导 attention 的每一步 shape。
+- Summary: Day4 从注意力机制概念开始，当前尚未创建练习文件。
+
+## 2026-09-04T17:37:47+08:00
+
+- Keywords: VLA学习, Day4, 注意力机制, QKV, scaled dot-product attention, mask, softmax
+- Progress: 扫描源文件夹未发现 AGENTS.md；依据当前项目 AGENTS.md 的上下文记录要求，已记录第四天开始学习注意力机制，覆盖 Q/K/V、点积相似度、缩放、softmax、mask 和 batch shape。
+- Next step: 实现 scaled_dot_product_attention.py，先支持单个 batch 和基础 mask，再补充 shape 断言与测试。
+- Summary: 源学习资料目录没有额外 AGENTS.md；当前学习记录继续写入 openvla-data/CODEX_CONTEXT.md。
+
+## 2026-09-04T17:38:41+08:00
+
+- Keywords: AGENTS.md, CODEX_CONTEXT.md, 项目协作规则
+- Progress: 已读取 /home/mia/data/openvla-data/AGENTS.md，确认项目要求在每次实质性请求完成后更新 CODEX_CONTEXT.md，并避免记录密码、令牌、私钥和模型凭据。
+- Next step: 后续继续按该规则记录 OpenVLA 学习进度和未解决问题。
+- Summary: 已确认 openvla-data 项目的上下文记录规则，记录位置和内容范围明确。
+
