@@ -499,17 +499,5 @@ This file stores concise cross-device task context.
 - Next step: 先用二维小例子理解 Q 与 K 的相似度、softmax 权重和 V 的加权求和，再推导 attention 的每一步 shape。
 - Summary: Day4 从注意力机制概念开始，当前尚未创建练习文件。
 
-## 2026-09-04T17:37:47+08:00
 
-- Keywords: VLA学习, Day4, 注意力机制, QKV, scaled dot-product attention, mask, softmax
-- Progress: 扫描源文件夹未发现 AGENTS.md；依据当前项目 AGENTS.md 的上下文记录要求，已记录第四天开始学习注意力机制，覆盖 Q/K/V、点积相似度、缩放、softmax、mask 和 batch shape。
-- Next step: 实现 scaled_dot_product_attention.py，先支持单个 batch 和基础 mask，再补充 shape 断言与测试。
-- Summary: 源学习资料目录没有额外 AGENTS.md；当前学习记录继续写入 openvla-data/CODEX_CONTEXT.md。
-
-## 2026-09-04T17:38:41+08:00
-
-- Keywords: AGENTS.md, CODEX_CONTEXT.md, 项目协作规则
-- Progress: 已读取 /home/mia/data/openvla-data/AGENTS.md，确认项目要求在每次实质性请求完成后更新 CODEX_CONTEXT.md，并避免记录密码、令牌、私钥和模型凭据。
-- Next step: 后续继续按该规则记录 OpenVLA 学习进度和未解决问题。
-- Summary: 已确认 openvla-data 项目的上下文记录规则，记录位置和内容范围明确。
 
