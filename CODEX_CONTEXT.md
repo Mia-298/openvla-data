@@ -373,3 +373,45 @@ This file stores concise cross-device task context.
 - Next step: 后续每次OpenVLA/VLA学习实质性对话完成后，继续用update_codex_context.py记录关键词、完成内容、开放问题和下一步；当前下一步仍是独立编写numpy_action_norm.py并完成q01/q99、裁剪、反归一化、7维与batch测试。
 - Summary: 确认了项目级上下文记录规则和跨设备读取目标，并记录了用户要求持续保存学习对话上下文。
 
+## 2026-09-03T17:26:28+08:00
+
+- Keywords: VLA学习, Day2, NumPy, ndarray, shape, 索引切片, 动作归一化, 矩阵乘法, axis, dtype
+- Progress: 确认用户目前还未学习矩阵乘法、axis 和 dtype；已将第二天学习范围调整为 ndarray、shape、索引/切片和 q01/q99 动作归一化，避免教学超前。
+- Next step: 先用简单的一维和二维数组练习 shape、索引、切片与归一化/反归一化；掌握后再单独学习 axis、dtype 和矩阵乘法。
+- Summary: 今天按用户实际进度推进 NumPy 基础，不假设已掌握矩阵乘法、axis 或 dtype。
+
+## 2026-09-03T17:27:14+08:00
+
+- Keywords: VLA学习, Day2, NumPy, axis, dtype, 矩阵乘法, test/numpy_learn.py
+- Progress: 检查 test/numpy_learn.py：用户已完成 ndarray、shape、索引/切片、广播、q01/q99 归一化与反归一化；确认待教学内容为 axis、dtype 和矩阵乘法，并发现第27行打印变量错误及等上下限除零风险。
+- Next step: 结合 test/numpy_learn.py 教授 axis、dtype、* 与 @ 的区别；随后让用户独立修改第27行并处理 high==low 的归一化边界。
+- Summary: 第二天 NumPy 基础练习已核对，教学重点从泛化基础收敛到用户明确未掌握的三个概念。
+
+## 2026-09-03T17:47:58+08:00
+
+- Keywords: NumPy, np.where, RuntimeWarning, 除零, high==low, 广播
+- Progress: 解释 test/numpy_learn.py 第56行警告：low_2[0] 与 high_2[0] 相等导致除数为0；np.where会先计算两个分支，故产生0/0警告，但最终屏蔽无效维度后仍返回0。已验证脚本正常返回数组。
+- Next step: 让用户用安全除数或布尔索引修复 normalize，并验证 q01=q99、越界值和 batch 输入。
+- Summary: 归一化边界问题本质是无效动作维度的除零与 np.where 的计算时机，不是 return 语句语法错误。
+
+## 2026-09-03T17:48:49+08:00
+
+- Keywords: VLA学习, Day2完成, NumPy, axis, dtype, 矩阵乘法, 动作归一化
+- Progress: 用户确认已学完 Day2 NumPy 内容：ndarray、shape、索引/切片、广播、axis、dtype、矩阵乘法，以及 q01/q99 归一化中的除零边界处理。
+- Next step: 进入 Day3：PyTorch tensor、device、requires_grad、前向传播、反向传播和基础训练循环。
+- Summary: Day2 学习目标已完成，已结合 test/numpy_learn.py 理解 NumPy 数组操作和动作归一化实现。
+
+## 2026-09-03T17:49:24+08:00
+
+- Keywords: VLA学习, Day2复习, NumPy axis
+- Progress: 用户反馈尚未真正理解 NumPy axis，需补充二维数组中 axis=0/1 的直观解释与练习；Day2 其他内容保持已完成。
+- Next step: 用二维动作数组讲清 axis 是操作/消除哪一维，并让用户预测 sum(axis=0/1) 的数值和 shape；确认后再进入 PyTorch。
+- Summary: 修正学习状态：axis 尚未掌握，暂不把 Day2 标记为完全结束。
+
+## 2026-09-03T17:56:59+08:00
+
+- Keywords: VLA学习, Day3开始, PyTorch, tensor, device, requires_grad, forwardlearn.py
+- Progress: 开始 Day3：已核对 TODO，目标是 PyTorch tensor、device/dtype、autograd 和训练循环；发现 test/forwardlearn.py 为空。检查本地 Python 环境确认未安装 torch，因此当前先讲解，运行实验需使用云端 OpenVLA 环境。
+- Next step: 先理解 tensor 与 NumPy ndarray 的对应关系、shape/device/dtype 查看和基本运算；然后在可用 PyTorch 环境中练习 requires_grad 与简单前向计算。
+- Summary: Day3 已开始，当前从 tensor 基础进入，未修改用户练习文件。
+

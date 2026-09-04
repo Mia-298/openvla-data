@@ -7,7 +7,9 @@ action = np.array([
     1.0
 ])
 print(action.shape)
+# 数据类型
 print(action.dtype)
+
 # (7,)一个动作，包含 7 个维度
 # float64
 
@@ -24,7 +26,7 @@ x=normalized_action[:, 0]
 print(x.shape)
 # （2，）2个动作一个维度
 y = normalized_action[:, -1]
-print(x.shape)
+print(y.shape)
 # （2，）取每个动作的后1个维度
 
 # 2.广播 broadcasting
@@ -51,7 +53,7 @@ def normalize(actions,low,high):
     valid = high > low#(不符合的值位置为false)
     mask = valid
     print(valid)
-    return np.where(mask,2*(clipped-low)/(high-low)-1,0.0,)
+    return np.where(mask,2*(clipped-low)/(high-low)-1,1.0,)
 def unnormalize(normalized_action,low,high):
     return (normalized_action+1)/2*(high-low)+low
 
@@ -63,3 +65,21 @@ print(unnormalize(normalize(actions_2,low_2,high_2),low_2,high_2))
 
 
 
+# 点乘：*代表每个元素逐个相乘，需要行列对应
+# @是叉乘，行和列对应乘并相加
+x = np.array([1, 2, 3])
+w = np.array([
+    [1, 0],
+    [0, 1],
+    [1, 1],
+])
+y = x @ w
+#y = [1*1+2*0+3*1][1*0+2*1+3*1] = [4,5]
+print(y)
+
+# axis=0:每一列计算
+print(w.sum(axis=0))
+# axis = 1每一行计算
+print(w.sum(axis=1))
+# np.min(normalized_action, axis=0)
+# 计算每一列的最小值
