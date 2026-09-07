@@ -80,3 +80,4 @@ print("最终参数：")
 print("w =", w.item())
 print("b =", b.item())
 print(y_pred)
+

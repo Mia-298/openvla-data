@@ -66,16 +66,19 @@ print(unnormalize(normalize(actions_2,low_2,high_2),low_2,high_2))
 
 
 # 点乘：*代表每个元素逐个相乘，需要行列对应
-# @是叉乘，行和列对应乘并相加
+# @是矩阵乘法，行和列对应乘并相加（行与列做点积）点积=点乘+求和
 x = np.array([1, 2, 3])
 w = np.array([
     [1, 0],
     [0, 1],
     [1, 1],
 ])
+v = np.array([[1],[2],[3]])
 y = x @ w
 #y = [1*1+2*0+3*1][1*0+2*1+3*1] = [4,5]
 print(y)
+z = x * v
+print(z)
 
 # axis=0:每一列计算
 print(w.sum(axis=0))
