@@ -1,10 +1,10 @@
 import numpy as np
 import math
 import torch
-Q = np.array([[1,0],
+Q = torch.tensor([[1,0],
               [1,1]])
 # Q的每行代表每个元素，列数代表纬度，比如这里Q1 = (1,0)2维度
-K = np.array([[1,0],
+K = torch.tensor([[1,0],
               [0,1]])
 # Q⋅K的转置
 scores = Q@K.T
@@ -19,8 +19,9 @@ attention_weights = torch.softmax(
     softed_score,
     dim=-1
 )
+print(attention_weights)
 # 分配之前可以设置某个Q不看某个K，设置mask
-mask = np.array([[1,0],
+mask = torch.tensor([[1,0],
               [1,1]])
 # 意思是Q1只看K1,Q2两个都看
 masked_scores = softed_score.masked_fill(
@@ -28,3 +29,8 @@ masked_scores = softed_score.masked_fill(
     float("-inf")
 )
 print(masked_scores)
+attention_weights = torch.softmax(
+    masked_scores,
+    dim=-1
+)
+print(attention_weights)
