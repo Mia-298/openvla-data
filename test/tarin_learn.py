@@ -59,7 +59,7 @@ for epoch in range(1000):
     # 这里y_pred计算完就固定了不会自动更新
     
     y_pred = w * x + b
-    # 计算预测值和真实值的均方差
+    # 计算预测值和真实值的均方差(前向传播)
     loss = ((y_pred - y_true) ** 2).mean()
     # 3. 清空上一次的梯度
     optimizer.zero_grad()
@@ -67,7 +67,7 @@ for epoch in range(1000):
     loss.backward()
     # 寻找最优解，感觉这里是类似工程优化的某个算法
     optimizer.step()
-    # 更新参数修改后的loss
+    # 更新参数修改后的loss（参数更新）
     loss = ((w * x + b - y_true) ** 2).mean()
     if epoch % 100 == 0:
         print(
