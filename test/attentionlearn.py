@@ -34,3 +34,7 @@ attention_weights = torch.softmax(
     dim=-1
 )
 print(attention_weights)
+V = torch.tensor([[10,0],[0,10]])
+# 每个 Query 根据相关性权重，从所有 Value 中汇总出来的新特征
+output = attention_weights@V
+print(output)
