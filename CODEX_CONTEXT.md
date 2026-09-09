@@ -1,3 +1,4 @@
+
 # Codex Project Context
 
 This file stores concise cross-device task context.
@@ -373,6 +374,7 @@ This file stores concise cross-device task context.
 - Next step: 后续每次OpenVLA/VLA学习实质性对话完成后，继续用update_codex_context.py记录关键词、完成内容、开放问题和下一步；当前下一步仍是独立编写numpy_action_norm.py并完成q01/q99、裁剪、反归一化、7维与batch测试。
 - Summary: 确认了项目级上下文记录规则和跨设备读取目标，并记录了用户要求持续保存学习对话上下文。
 
+
 ## 2026-09-03T17:26:28+08:00
 
 - Keywords: VLA学习, Day2, NumPy, ndarray, shape, 索引切片, 动作归一化, 矩阵乘法, axis, dtype
@@ -499,5 +501,35 @@ This file stores concise cross-device task context.
 - Next step: 先用二维小例子理解 Q 与 K 的相似度、softmax 权重和 V 的加权求和，再推导 attention 的每一步 shape。
 - Summary: Day4 从注意力机制概念开始，当前尚未创建练习文件。
 
+
+
+
+## 2026-09-03T12:49:55+08:00
+
+- Keywords: VLA简历项目, OpenVLA, LIBERO-Spatial, LoRA, RLDS, 动作token, 闭环评测, 失败分析
+- Progress: 已将两个月VLA路线按已完成项目经历整理：完成OpenVLA推理链路与源码分析、动作离散化/反归一化、RLDS与LoRA训练流程梳理、LIBERO-Spatial闭环评测、自定义prompt及连续抬升成功检测；整理出项目名称、背景、职责、技术栈、量化结果和面试表述。
+- Next step: 根据目标岗位和真实经历补充最终简历中的项目时间、个人署名、代码仓库链接；如继续增强项目，优先补充可复现的训练配置、统一成功判定和更多对比实验。
+- Summary: 本次用户要求将两个月VLA实践写成非学习性质的具体项目。简历表述应以个人项目/研究项目为名，官方LIBERO-Spatial日志记录12个episode中10次成功、成功率83.3%，自定义抓取检测记录连续5步满足抬升阈值；两者需区分评测口径。
+
+## 2026-09-03T13:15:00+08:00
+
+- Keywords: 简历项目深化, OpenVLA-LIBERO, SmolVLA, FA3, LeRobotDataset, 异步推理, action chunk, 数据采集
+- Progress: 已核对VLA教程Markdown、OpenVLA复现PDF和SmolVLA真机部署脚本，明确可落地项目内容：OpenVLA云端环境与依赖修复、LIBERO BDDL/评测闭环、LoRA训练与动作Token解码；SmolVLA法奥FA3 RPC/ServoJ、相机线程、LeRobotDataset采集、质量监控、动作块队列与异步部署。准备按两个项目和一个合并版重写简历描述。
+- Next step: 将深化后的项目经历按目标简历版式压缩到3-5条bullet，并根据真实执行情况确认OpenVLA正式训练、SmolVLA真机运行和实验数字后再定稿。
+- Summary: 用户认为原项目描述过于浅显，要求把教程中实际完成的环境配置、源码分析、微调、评测、数据采集和真机部署流程具体写成项目经历；本轮已完成资料核对，尚未修改项目代码。
+
+## 2026-09-03T13:29:30+08:00
+
+- Keywords: 简历审查, 气罐上下料, OpenVLA, SmolVLA, 项目经历表述, 技术落地
+- Progress: 已审查用户提供的三段项目经历：气罐上下料具备MuJoCo/ROS2/YOLO/点云/IK Map/MoveIt完整工程链路；OpenVLA需要补充LIBERO环境、动作Token、LoRA、评测和失败分析；SmolVLA需要补充FA3/相机/LeRobotDataset/质量监控/action chunk/异步调度和安全限幅。已指出当前教程证据不支持直接写AUBO-i16与FAIR-FR5的OpenVLA微调，需按真实实验记录修正。
+- Next step: 采用重写后的项目版本，并核对每个项目的实际日期、机械臂型号、训练checkpoint、真机rollout和成功率；为气罐项目补充任务数量、成功率、规划耗时或泛化测试等量化结果。
+- Summary: 用户希望将教程中完成的VLA工作写得更落地。本轮完成简历代码审查准备，重点是避免模型训练、机械臂适配和真机部署的证据越界，同时增强可面试追问的实现细节。
+
+## 2026-09-03T13:36:01+08:00
+
+- Keywords: SmolVLA简历优化, 400字限制, LeRobotDataset, action chunk, 异步推理
+- Progress: 已将SmolVLA法奥机械臂项目压缩为400字以内的简历版本，保留项目背景、7维state-action数据采集、Episode质量监控、行为克隆微调、相机/推理/控制三线程、30Hz相机、50步action chunk、队列阈值和动作平滑等关键实现细节。
+- Next step: 根据简历整体篇幅选择该压缩版本；如有真实实验结果，可在最后补充成功率、rollout次数或平均推理延迟等一个量化指标。
+- Summary: 用户要求优化SmolVLA项目描述且字数小于400字，本轮已完成压缩方案，重点修正Episode表述并增强具体参数和系统机制。
 
 

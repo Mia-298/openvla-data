@@ -65,6 +65,7 @@ print(unnormalize(normalize(actions_2,low_2,high_2),low_2,high_2))
 
 
 
+
 # 点乘：*代表每个元素逐个相乘，需要行列对应
 # @是矩阵乘法，行和列对应乘并相加（行与列做点积）点积=点乘+求和
 x = np.array([1, 2, 3])
@@ -86,3 +87,4 @@ print(w.sum(axis=0))
 print(w.sum(axis=1))
 # np.min(normalized_action, axis=0)
 # 计算每一列的最小值
+
