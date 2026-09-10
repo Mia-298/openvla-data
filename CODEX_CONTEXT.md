@@ -533,3 +533,66 @@ This file stores concise cross-device task context.
 - Summary: 用户要求优化SmolVLA项目描述且字数小于400字，本轮已完成压缩方案，重点修正Episode表述并增强具体参数和系统机制。
 
 
+## 2026-09-10T10:49:48+08:00
+
+- Keywords: VLA学习, 第二周Day1, SO(3), SE(3), 齐次变换, 坐标系
+- Progress: 已确认第二周第一天内容为旋转矩阵与齐次变换；已梳理课程目标、坐标变换记号和独立实现任务，尚未写核心代码。
+- Next step: 独立创建 se3_transforms.py，实现 make_transform、invert_transform、transform_point、compose_transform，并用随机变换和边界案例测试。
+- Summary: 本次开始VLA八周计划第二周。重点是把OpenVLA动作执行中的坐标系问题连接到SO(3)/SE(3)数学；核心实现暂由用户独立完成，后续根据代码和测试结果讲解。
+
+## 2026-09-10T10:53:32+08:00
+
+- Keywords: VLA学习, 第二周Day1, SO(3), 正交矩阵, 行列式
+- Progress: 已解释SO(3)中R.T @ R=I与det(R)=1的几何含义：保持长度/角度且不发生镜像，并说明旋转矩阵的逆为转置。
+- Next step: 继续用绕Z轴90度旋转和纯平移例子验证齐次变换，再独立实现se3_transforms.py。
+- Summary: 用户正在从矩阵条件入门SO(3)。当前重点是把代数条件连接到旋转、长度保持、方向保持和逆变换。
+
+## 2026-09-10T10:56:24+08:00
+
+- Keywords: VLA学习, 第二周Day1, SE(3), 刚体变换, 旋转平移, 齐次坐标
+- Progress: 已解释SE(3)：由SO(3)旋转和平移向量组成的4x4三维刚体变换，具有6个自由度，可用于坐标系和机器人末端位姿转换。
+- Next step: 用具体数值手算一个SE(3)变换及其逆变换，随后独立实现make_transform和transform_point。
+- Summary: 用户继续学习第二周第一天的机器人数学，已从SO(3)扩展到SE(3)，下一步进入齐次矩阵的数值计算和代码实现。
+
+## 2026-09-10T11:01:22+08:00
+
+- Keywords: VLA学习, 第二周Day1, SE(3)编码教学, make_transform, NumPy
+- Progress: 用户反馈需要从零学习编码；已调整为分函数、分测试的教学方式，当前先学习make_transform，不直接替用户修改代码。
+- Next step: 用户在se3_transforms.py中独立完成make_transform并运行单位旋转加平移测试；收到代码或输出后继续讲invert_transform。
+- Summary: 本次教学从SE(3)概念进入NumPy实现。第一步是把3x3旋转矩阵和3维平移向量装入4x4齐次变换矩阵。
+
+## 2026-09-10T11:04:47+08:00
+
+- Keywords: VLA学习, 第二周Day1, 旋转矩阵, RPY, 欧拉角, ZYX
+- Progress: 已解释旋转矩阵可以转换为RPY，但结果依赖旋转顺序和坐标约定；当前采用常见的ZYX约定作为后续学习入口，并指出万向节锁问题。
+- Next step: 继续完成make_transform，然后用一个绕Z轴90度的旋转矩阵验证ZYX约定下的roll/pitch/yaw结果。
+- Summary: 用户开始追问旋转矩阵与RPY的关系。当前重点是建立欧拉角不是唯一表示、必须声明顺序，以及pitch接近±90度时存在奇异性的认识。
+
+## 2026-09-10T11:13:22+08:00
+
+- Keywords: VLA学习, 第二周Day1, SE(3)函数, invert_transform, transform_point, compose_transform
+- Progress: 已开始拆解SE(3)三个核心函数：invert_transform负责反向坐标变换，transform_point负责点坐标转换，compose_transform负责连续坐标变换组合。
+- Next step: 用纯平移矩阵手算三个函数的输入输出，然后继续完成make_transform测试并实现transform_point。
+- Summary: 用户需要从函数语义开始学习SE(3)代码。当前先建立函数与坐标系方向、矩阵乘法之间的对应关系，尚未要求直接修改代码。
+
+## 2026-09-10T11:18:09+08:00
+
+- Keywords: VLA学习, 第二周Day1, 物体位姿, xyz-rpy, SE(3)组合, 旋转矩阵
+- Progress: 已解释带xyz和rpy的物体位姿变换：xyz使用p_A=R_A_B p_B+t_A_B，姿态使用R_A_O=R_A_B R_B_O，整体等价于齐次矩阵相乘；强调不能一般性地直接相加RPY。
+- Next step: 用一个平移加绕Z轴旋转的数值例子实现T_B_O、T_A_B和T_A_O的组合，再把结果提取为xyz与RPY。
+- Summary: 用户已将SE(3)概念连接到物体的实际xyz/rpy位姿。下一步从位姿矩阵组合进入代码实现和坐标系方向验证。
+
+## 2026-09-10T11:35:44+08:00
+
+- Keywords: VLA学习, 第二周Day1, xyz-rpy到T_B, RPY转旋转矩阵, 齐次变换
+- Progress: 已解释如何将坐标系B的xyz与rpy转换为^A T_B：先按约定将RPY转为R，再把R放入左上角、xyz放入最后一列。
+- Next step: 在se3_transforms.py中用SciPy或手写RzRyRx验证xyz-rpy到T_B的转换，并测试T_B作用于B原点的结果。
+- Summary: 用户开始学习从常见位姿表示xyz/rpy构造SE(3)矩阵。当前重点是明确T_B的参考坐标系和RPY旋转顺序。
+
+## 2026-09-10T11:46:58+08:00
+
+- Keywords: VLA学习, 第二周Day1, xyz-rpy到T_B, SE(3), make_transform
+- Progress: 已说明将坐标系B下的xyz和rpy组成T_B：rpy按约定转为3x3旋转矩阵R_B，再与位置p_B通过make_transform组成4x4位姿矩阵。
+- Next step: 用SciPy实现rpy_to_matrix并打印T_B，随后练习从T_B取回xyz与rpy。
+- Summary: 用户正在学习从物体位姿参数xyz/rpy构造SE(3)齐次变换矩阵。当前使用ZYX约定，角度单位先采用弧度并明确坐标系含义。
+
