@@ -81,34 +81,78 @@ def transform_obj(Tab,T_BO):
 def compose_transform(Tab,Tbc):
     return transform_obj(Tab,Tbc)
 
-# 主动旋转矩阵Rb后的Tab
-def active_rotate(Tab,Rb):
+# 主动绕b坐标系旋转矩阵Rb后的Tab
+def active_rotate_self(Tab,Rb):
     Tab = np.asarray(Tab, dtype=float).copy()
     Rb = np.asarray(Rb, dtype=float)
     Rab = Tab[:3,:3]@Rb
     Tab[:3,:3] = Rab    
     return Tab
+
+
+# 主动绕a坐标系旋转矩阵Rb后的Tab
+def active_rotate_parent(T, R_parent):
+    T = np.asarray(T, dtype=float)
+    R_parent = np.asarray(R_parent, dtype=float)
+
+    delta_T = np.eye(4)
+    delta_T[:3, :3] = R_parent
+
+    return delta_T @ T
+
 # 被动旋转旋转矩阵Ra下，Tob的变化
 def passive_rotate(Toa,Tab,Ra):
     Ta = np.eye(4)
     Ta[:3,:3] = Ra
     Tob = Toa@Ra@Tab 
     return Tob
-# 计算6轴机械臂在关节值J下：基坐标系下的末端笛卡尔坐标（FK）
-def Tbj6(J,Tb1,T12,T23,T34,T45,T56):
-    J = np.asarray(J, dtype=float).reshape(6)
-    R1 = rpy2r([0,0,J[0]])
-    R2 = rpy2r([0,0,J[1]])
-    R3 = rpy2r([0,0,J[2]])
-    R4 = rpy2r([0,0,J[3]])
-    R5 = rpy2r([0,0,J[4]])
-    R6 = rpy2r([0,0,J[5]])
-    Tb1 = active_rotate(Tb1,R1)
-    T12 = active_rotate(T12,R2)
-    T23 = active_rotate(T23,R3)
-    T34 = active_rotate(T34,R4)
-    T45 = active_rotate(T45,R5)
-    T56 = active_rotate(T56,R6)
+
+# 计算第n个关节在当前j下基坐标下的Tbn
+# q一般是绕上一个坐标系的旋转轴
+def Tbn(q,Tb1,T12,T23,T34,T45,T56):
+    q = np.asarray(q, dtype=float).reshape(6)
+    R1 = rpy2r([0,0,q[0]])
+    R2 = rpy2r([0,0,q[1]])
+    R3 = rpy2r([0,0,q[2]])
+    R4 = rpy2r([0,0,q[3]])
+    R5 = rpy2r([0,0,q[4]])
+    R6 = rpy2r([0,0,q[5]])
+    Tb1 = active_rotate_parent(Tb1,R1)
+    T12 = active_rotate_parent(T12,R2)
+    T23 = active_rotate_parent(T23,R3)
+    T34 = active_rotate_parent(T34,R4)
+    T45 = active_rotate_parent(T45,R5)
+    T56 = active_rotate_parent(T56,R6)
+    Tb2 = Tb1@T12
+    Tb3 = Tb2@T23
+    Tb4 = Tb3@T34
+    Tb5 = Tb4@T45
+    Tb6 = Tb5@T56
+    T_joints = [
+        Tb1,
+        Tb2,
+        Tb3,
+        Tb4,
+        Tb5,
+        Tb6,
+    ]
+    return T_joints
+
+# 计算6轴机械臂在关节值J下：基坐标系下的末端笛卡尔坐标（FK）    
+def Tbj6(q,Tb1,T12,T23,T34,T45,T56):
+    q = np.asarray(q, dtype=float).reshape(6)
+    R1 = rpy2r([0,0,q[0]])
+    R2 = rpy2r([0,0,q[1]])
+    R3 = rpy2r([0,0,q[2]])
+    R4 = rpy2r([0,0,q[3]])
+    R5 = rpy2r([0,0,q[4]])
+    R6 = rpy2r([0,0,q[5]])
+    Tb1 = active_rotate_parent(Tb1,R1)
+    T12 = active_rotate_parent(T12,R2)
+    T23 = active_rotate_parent(T23,R3)
+    T34 = active_rotate_parent(T34,R4)
+    T45 = active_rotate_parent(T45,R5)
+    T56 = active_rotate_parent(T56,R6)
     Tb6 = Tb1 @ T12 @ T23 @ T34 @ T45 @ T56
     return transfotm2Cartesian(Tb6)
 
