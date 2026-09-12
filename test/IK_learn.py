@@ -87,6 +87,7 @@ def q_dot2eevw(J,q_dot):
 
 
 
+
 # 差分验证
 def numerical_position_jacobian(q, Tb1, T12, T23, T34, T45, T56):
 
@@ -167,6 +168,28 @@ def damped_pseudoinverse(J, damping=0.05):
         J @ J.T + damping**2 * np.eye(J.shape[0])
     )
 
+# rpy的error处理
+# 因为欧拉角存在角度跳变和万向节锁
+# 因此需要先用旋转矩阵计算旋转，再转换成rotation vector->角速度误差
+def pose_error(T_current, pos_target,rpy_target):
+    T_target = FK_learn.Cartesian2transform(pos_target,rpy_target)
+    p_current = T_current[:3, 3]
+    p_target = T_target[:3,3]
+
+    # 位置误差
+    e_position = p_target - p_current
+
+    R_current = T_current[:3, :3]
+    R_target = T_target[:3,:3]
+
+    # 当前姿态旋转到目标姿态
+    R_error = R_target @ R_current.T
+
+    # 旋转矩阵转旋转向量变成rpy
+    e_rotation = Rs.from_matrix(R_error).as_rotvec()
+
+    return np.concatenate([e_position, e_rotation])
+
 if __name__ == "__main__":
     J = geometric_jacobian(T_joints, T_ee)
 
@@ -235,25 +258,48 @@ if __name__ == "__main__":
     q_dot = J_pinv @ x_dot
     q_next = q + q_dot * dt
 
-    # 或者人为指定末端位置
+    # 或者位置Ik
     # 当前末端pos
-    p_current = T_ee[:3, 3]
-    # 目标末端pos
+    T_joints = FK_learn.Tbn(q,Tb1,T12,T23,T34,T45,T56)
+    T_ee = T_joints[-1]
+    p_current,r_current = FK_learn.transfotm2Cartesian(T_ee)
+    # 目标末端pos,rpy
     p_target = np.array([
         p_current[0] + 0.05,
         p_current[1],
         p_current[2]
     ])
-    position_error = p_target - p_current
-    # 控制频率
-    Kp = 2.0
-    # 速度= 目标差除以周期
-    v_desired = position_error/dt
-    x_dot = np.zeros(6)
-    x_dot[:3] = v_desired
-    q_dot = J_pinv @ x_dot
-    q_next = q + q_dot * dt
-    
-    print(q_dot)
-    # 还有一种PoseIK，根据目标位姿直接输出关节角
+    r_target = np.array([
+            r_current[0] + 0.5,
+            r_current[1],
+            r_current[2]
+        ])
+    print("step =0 "+"q = "+q)
+    for step in range(1000):
+        T_joints = FK_learn.Tbn(q,Tb1,T12,T23,T34,T45,T56)
+        T_ee = T_joints[-1]
+        J= geometric_jacobian(T_joints, T_ee)
+        # 当前末端pos
+        p_current,r_current = FK_learn.transfotm2Cartesian(T_ee)
+        # 目标末端pos,rpy
+        # 计算误差
+        e = pose_error(T_ee,p_target,r_target)
+        if np.linalg.norm(e) < 1e-4:
+            print(f"converged at step {step + 1}")
+            break
+        # 控制增益（用于决定收敛的速度）
+        K = np.diag([
+            2.0, 2.0, 2.0,   # 位置
+            1.0, 1.0, 1.0    # 姿态
+        ])
+        # 速度
+        x_dot = K @ e
+        J_pinv = damped_pseudoinverse(J)
+        q_dot = J_pinv @ x_dot
+        q_next = q + q_dot * dt
+        q = q_next
+        
+        print(f"step = {step + 1}, q = {q}")
+        
+        
 
