@@ -138,7 +138,7 @@ def Tbn(q,Tb1,T12,T23,T34,T45,T56):
     ]
     return T_joints
 
-# 计算6轴机械臂在关节值J下：基坐标系下的末端笛卡尔坐标（FK）    
+# 计算6轴机械臂在关节值J下：基坐标系下的末端T矩阵（FK）    
 def Tbj6(q,Tb1,T12,T23,T34,T45,T56):
     q = np.asarray(q, dtype=float).reshape(6)
     R1 = rpy2r([0,0,q[0]])
