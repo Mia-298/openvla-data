@@ -159,6 +159,13 @@ def numerical_angular_jacobian(
         Jw_num[:, i] = rotvec / epsilon
 
     return Jw_num
+# 阻尼伪逆：当 \(J\) 接近不可逆时，避免关节速度突然变得非常大。
+# 代价是末端速度不一定完全等于目标速度，但系统会更加稳定
+def damped_pseudoinverse(J, damping=0.05):
+    n = J.shape[1]
+    return J.T @ np.linalg.inv(
+        J @ J.T + damping**2 * np.eye(J.shape[0])
+    )
 
 if __name__ == "__main__":
     J = geometric_jacobian(T_joints, T_ee)
@@ -209,8 +216,44 @@ if __name__ == "__main__":
         0.00,   # wy
         0.00    # wz
     ])
-    q_dot = np.linalg.pinv(J) @ x_dot
+    # 控制周期
+    dt = 0.01
+    # 每个关节角速度限制
+    q_dot_max = np.array([
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5
+    ])
+    # 末端速度限制
+    v_max = 0.1       # m/s
+    w_max = 0.5       # rad/s
+    # 表示一直要求末端沿 \(x\) 方向运动。它并不知道目标在哪里，也不会自动停止
+    J_pinv = damped_pseudoinverse(J)
+    q_dot = J_pinv @ x_dot
+    q_next = q + q_dot * dt
 
+    # 或者人为指定末端位置
+    # 当前末端pos
+    p_current = T_ee[:3, 3]
+    # 目标末端pos
+    p_target = np.array([
+        p_current[0] + 0.05,
+        p_current[1],
+        p_current[2]
+    ])
+    position_error = p_target - p_current
+    # 控制频率
+    Kp = 2.0
+    # 速度= 目标差除以周期
+    v_desired = position_error/dt
+    x_dot = np.zeros(6)
+    x_dot[:3] = v_desired
+    q_dot = J_pinv @ x_dot
+    q_next = q + q_dot * dt
+    
     print(q_dot)
     # 还有一种PoseIK，根据目标位姿直接输出关节角
 

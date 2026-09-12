@@ -596,3 +596,10 @@ This file stores concise cross-device task context.
 - Next step: 用SciPy实现rpy_to_matrix并打印T_B，随后练习从T_B取回xyz与rpy。
 - Summary: 用户正在学习从物体位姿参数xyz/rpy构造SE(3)齐次变换矩阵。当前使用ZYX约定，角度单位先采用弧度并明确坐标系含义。
 
+## 2026-09-12T15:46:59+08:00
+
+- Keywords: VLA学习, 第二周Day4, differentialIK, 阻尼伪逆
+- Progress: 已检查 test/IK_learn.py：完成几何雅可比、数值差分验证和伪逆速度映射；下一步实现位姿误差闭环与阻尼最小二乘。
+- Next step: 在 IK_learn.py 中加入 pose_error、damped_pseudoinverse 和多步闭环轨迹跟踪。
+- Summary: 当前代码已能验证雅可比正确性并计算 q_dot，但还没有把目标末端位姿误差反馈到控制器；教学重点转为闭环 differential IK。
+
