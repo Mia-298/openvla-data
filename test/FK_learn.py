@@ -73,7 +73,7 @@ def transform_point(Tab,xyz_B):
 # 把一个物体从坐标系B变换到坐标系A
 def transform_obj(Tab,T_BO):
     Tab = np.asarray(Tab,dtype = float)
-    T_BO = np.asarray(T_B,dtype = float)
+    T_BO = np.asarray(T_BO,dtype = float)
     T_AO = Tab@T_BO
     return T_AO
 
@@ -106,55 +106,124 @@ def passive_rotate(Toa,Tab,Ra):
     Ta[:3,:3] = Ra
     Tob = Toa@Ra@Tab 
     return Tob
+def axis_angle_rotation(axis, angle):
+    axis = np.asarray(axis, dtype=float)
+    axis = axis / np.linalg.norm(axis)
 
+    x, y, z = axis
+
+    K = np.array([
+        [0, -z, y],
+        [z, 0, -x],
+        [-y, x, 0],
+    ])
+
+    R = (
+        np.eye(3)
+        + np.sin(angle) * K
+        + (1 - np.cos(angle)) * (K @ K)
+    )
+
+    return R
 # 计算第n个关节在当前j下基坐标下的Tbn
 # q一般是绕上一个坐标系的旋转轴
-def Tbn(q,Tb1,T12,T23,T34,T45,T56):
-    q = np.asarray(q, dtype=float).reshape(6)
-    R1 = rpy2r([0,0,q[0]])
-    R2 = rpy2r([0,0,q[1]])
-    R3 = rpy2r([0,0,q[2]])
-    R4 = rpy2r([0,0,q[3]])
-    R5 = rpy2r([0,0,q[4]])
-    R6 = rpy2r([0,0,q[5]])
-    Tb1 = active_rotate_parent(Tb1,R1)
-    T12 = active_rotate_parent(T12,R2)
-    T23 = active_rotate_parent(T23,R3)
-    T34 = active_rotate_parent(T34,R4)
-    T45 = active_rotate_parent(T45,R5)
-    T56 = active_rotate_parent(T56,R6)
-    Tb2 = Tb1@T12
-    Tb3 = Tb2@T23
-    Tb4 = Tb3@T34
-    Tb5 = Tb4@T45
-    Tb6 = Tb5@T56
-    T_joints = [
-        Tb1,
-        Tb2,
-        Tb3,
-        Tb4,
-        Tb5,
-        Tb6,
-    ]
-    return T_joints
+def Tbn(
+    q,
+    transforms_relative,
+    axes_relative,
+):
+    if len(q) != len(transforms_relative):
+        raise ValueError(
+            "q 和 transforms_relative 数量不一致"
+        )
 
-# 计算6轴机械臂在关节值J下：基坐标系下的末端T矩阵（FK）    
-def Tbj6(q,Tb1,T12,T23,T34,T45,T56):
-    q = np.asarray(q, dtype=float).reshape(6)
-    R1 = rpy2r([0,0,q[0]])
-    R2 = rpy2r([0,0,q[1]])
-    R3 = rpy2r([0,0,q[2]])
-    R4 = rpy2r([0,0,q[3]])
-    R5 = rpy2r([0,0,q[4]])
-    R6 = rpy2r([0,0,q[5]])
-    Tb1 = active_rotate_parent(Tb1,R1)
-    T12 = active_rotate_parent(T12,R2)
-    T23 = active_rotate_parent(T23,R3)
-    T34 = active_rotate_parent(T34,R4)
-    T45 = active_rotate_parent(T45,R5)
-    T56 = active_rotate_parent(T56,R6)
-    Tb6 = Tb1 @ T12 @ T23 @ T34 @ T45 @ T56
-    return transfotm2Cartesian(Tb6)
+    T_parent = np.eye(4)
+
+    T_joints = []
+    axes_base = []
+
+    for i in range(len(q)):
+        T_zero = transforms_relative[i].copy()
+
+        # joint i 的旋转轴相对于上一个 joint
+        axis_parent = axes_relative[i]
+
+        # 当前旋转轴转换到 base 坐标系
+        axis_base = (
+            T_parent[:3, :3]
+            @ axis_parent
+        )
+
+        axes_base.append(axis_base)
+
+        # 关节变量产生的旋转
+        R_joint = axis_angle_rotation(
+            axis_parent,
+            q[i],
+        )
+
+        # 平移不受当前关节自身旋转影响
+        T_current_relative = T_zero.copy()
+
+        T_current_relative[:3, :3] = (
+            R_joint
+            @ T_zero[:3, :3]
+        )
+
+        # 连乘得到 joint i 在 base 下的位姿
+        T_current = (
+            T_parent
+            @ T_current_relative
+        )
+
+        T_joints.append(T_current)
+
+        T_parent = T_current
+
+    return (
+        np.asarray(T_joints),
+        np.asarray(axes_base),
+    )
+
+# # 计算6轴机械臂在关节值J下：基坐标系下的末端T矩阵（FK）    
+# def Tbj6(q,
+#     transforms_relative,
+#     axes_relative):
+#    if len(q) != len(transforms_relative):
+#         raise ValueError(
+#             "q 和 transforms_relative 数量不一致"
+#         )
+
+#     T_parent = np.eye(4)
+   
+#     T_joints = []
+#     axes_base = []
+   
+#     for i in range(len(q)):
+#         T_zero = transforms_relative[i].copy()
+
+#         # joint i 的旋转轴相对于上一个 joint
+#         axis_parent = axes_relative[i]
+
+#         # 当前旋转轴转换到 base 坐标系
+#         axis_base = (
+#             T_parent[:3, :3]
+#             @ axis_parent
+#         )
+
+#         axes_base.append(axis_base)
+
+#         # 关节变量产生的旋转
+#         R_joint = axis_angle_rotation(
+#             axis_parent,
+#             q[i],
+#         )
+
+#         # 平移不受当前关节自身旋转影响
+#         T_current_relative = T_zero.copy()
+#         Tb6 = Tb6@T_current_relative
+
+#     return transfotm2Cartesian(Tb6)
 
 if __name__ == "__main__":
     rotation = np.eye(3)

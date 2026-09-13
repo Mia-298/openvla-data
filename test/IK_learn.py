@@ -61,9 +61,9 @@ T56 = FK_learn.Cartesian2transform(
 
 
 
-# 当前的T，而不是初始0位的
-T_joints = FK_learn.Tbn(q,Tb1,T12,T23,T34,T45,T56)
-T_ee = T_joints[-1]
+# # 当前的T，而不是初始0位的
+# T_joints = FK_learn.Tbn(q,Tb1,T12,T23,T34,T45,T56)
+# T_ee = T_joints[-1]
 
 # 雅可比矩阵的作用是将关节速度转换成末端的线速度和角速度
 # 这里用的是6轴机械臂做例子，假设第 i 个关节绕 zi−1为q
@@ -74,22 +74,26 @@ T_ee = T_joints[-1]
 # zi：第i个关节旋转轴在base坐标系下的单位方向向量
 # zi * q_dot[i] 才是该关节产生的角速度向量
 # 一般是已知q和Tb1-T56,还有q_dot(关节速度)
-def geometric_jacobian(T_joints, T_ee):
-    pe = T_ee[:3,3]
-    T_axis_frames = [
-        np.eye(4),     # joint 1 -> frame 0 / base
-        T_joints[0],   # joint 2 -> frame 1
-        T_joints[1],   # joint 3 -> frame 2
-        T_joints[2],   # joint 4 -> frame 3
-        T_joints[3],   # joint 5 -> frame 4
-        T_joints[4],   # joint 6 -> frame 5
-    ]
-    J = np.zeros((6, 6), dtype=float)
-    for i in range (6):
-        p_i = T_axis_frames[i][:3, 3]
-        z_i= T_axis_frames[i][:3, 2]
-        J[:3, i] = np.cross(z_i, pe - p_i)
-        J[3:, i] = z_i
+def geometric_jacobian(
+    T_joints,
+    T_ee,
+    axes_base,
+):
+    n = len(T_joints)
+    J = np.zeros((6, n))
+
+    p_ee = T_ee[:3, 3]
+
+    for i in range(n):
+        p_i = T_joints[i][:3, 3]
+        axis_i = axes_base[i]
+
+        J[:3, i] = np.cross(
+            axis_i,
+            p_ee - p_i,
+        )
+
+        J[3:, i] = axis_i
 
     return J
 
@@ -204,128 +208,206 @@ def pose_error(T_current, pos_target,rpy_target):
 
     return np.concatenate([e_position, e_rotation])
 #速度IK：延某个方向运动一个周期产生的q
-def v_inverse_kinematics(q_init,x_dot,dt = 0.01,v_max = 0.1, w_max = 0.5):
-    q = q_init.copy()
-    T_joints = FK_learn.Tbn(
-                q, Tb1, T12, T23, T34, T45, T56
-            )
-    T_ee = T_joints[-1]
-    J = geometric_jacobian(T_joints, T_ee)
+def v_inverse_kinematics(
+    q_init,
+    transforms_relative,
+    axes_relative,
+    T6ee,
+    x_dot,
+    dt=0.01,
+    q_dot_max=0.5,
+):
+    q = np.asarray(
+        q_init,
+        dtype=float,
+    ).copy()
+
+    T_joints, axes_base = FK_learn.Tbn(
+        q,
+        transforms_relative,
+        axes_relative,
+    )
+
+    # joint6 还不是 attachment_site
+    T_ee = T_joints[-1] @ T6ee
+
+    J = geometric_jacobian(
+        T_joints,
+        T_ee,
+        axes_base,
+    )
+
     J_pinv = damped_pseudoinverse(J)
+
     q_dot = J_pinv @ x_dot
-    q_dot = np.clip(q_dot, -q_dot_max, q_dot_max)
+
+    q_dot = np.clip(
+        q_dot,
+        -q_dot_max,
+        q_dot_max,
+    )
+
     q_next = q + q_dot * dt
+
     return q_next
 # 位置Ik：q_init:当前关节值，pos_target , rpy_target ：目标pose，dt：控制周期
-def inverse_kinematics( q_init , pos_target , rpy_target , max_steps = 1000,tolerance=0.01,dt = 0.01):
-    q = q_init.copy()
-    for step in range(max_steps):
-        T_joints = FK_learn.Tbn(
-            q, Tb1, T12, T23, T34, T45, T56
-        )
-        T_current = T_joints[-1]
-        e = pose_error(T_current,  pos_target , rpy_target)
+def inverse_kinematics(
+    q_init,
+    pos_target,
+    rpy_target,
+    transforms_relative,
+    axes_relative,
+    T6ee,
+    K = np.diag([
+        2.0, 2.0, 2.0,
+        1.0, 1.0, 1.0
+    ]),
+    max_steps=1000,
+    pos_tolerance=0.001,
+    rot_tolerance=0.01,
+    dt=0.01,
+    q_dot_max=0.5,
+):
+    q = np.asarray(
+        q_init,
+        dtype=float,
+    ).copy()
 
-        if np.linalg.norm(e) < tolerance:
+    for step in range(max_steps):
+        # 新版 FK：同时返回关节位姿和世界/base坐标系下的轴
+        T_joints, axes_base = FK_learn.Tbn(
+            q,
+            transforms_relative,
+            axes_relative,
+        )
+
+        # 第六关节原点 -> attachment_site
+        T_current = T_joints[-1] @ T6ee
+
+        # 六维误差：[位置误差, 姿态误差]
+        e = pose_error(
+            T_current,
+            pos_target,
+            rpy_target,
+        )
+
+        position_error = np.linalg.norm(e[:3])
+        rotation_error = np.linalg.norm(e[3:])
+
+        if (
+            position_error < pos_tolerance
+            and rotation_error < rot_tolerance
+        ):
             return q, True, step
 
-        J = geometric_jacobian(T_joints, T_current)
+        J = geometric_jacobian(
+            T_joints,
+            T_current,
+            axes_base,
+        )
+
         J_pinv = damped_pseudoinverse(J)
 
         q_dot = J_pinv @ (K @ e)
-        q_dot = np.clip(q_dot, -q_dot_max, q_dot_max)
+
+        q_dot = np.clip(
+            q_dot,
+            -q_dot_max,
+            q_dot_max,
+        )
+
         q = q + q_dot * dt
 
     return q, False, max_steps
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    # 第一部分：当前各关节速度对末端速度产生的影响
-    q_dot = np.array([
-        0.2,
-        0.3,
-        -0.1,
-        0.5,
-        0.2,
-        -0.3
-    ])
-    J = geometric_jacobian(T_joints, T_ee)
+#     # 第一部分：当前各关节速度对末端速度产生的影响
+#     q_dot = np.array([
+#         0.2,
+#         0.3,
+#         -0.1,
+#         0.5,
+#         0.2,
+#         -0.3
+#     ])
+#     J = geometric_jacobian(T_joints, T_ee)
 
-    J_num = numerical_position_jacobian(
-        q,
-        Tb1, T12, T23,
-        T34, T45, T56
-    )
-    Jw_num = numerical_angular_jacobian(
-    q,
-    Tb1, T12, T23,
-    T34, T45, T56
-)
+#     J_num = numerical_position_jacobian(
+#         q,
+#         Tb1, T12, T23,
+#         T34, T45, T56
+#     )
+#     Jw_num = numerical_angular_jacobian(
+#     q,
+#     Tb1, T12, T23,
+#     T34, T45, T56
+# )
     
-    print("Geometric:")
-    print(J[:3, :])
+#     print("Geometric:")
+#     print(J[:3, :])
 
-    print("Finite difference:")
-    print(J_num)
-    print("error:")
-    print(J[:3, :] - J_num)
+#     print("Finite difference:")
+#     print(J_num)
+#     print("error:")
+#     print(J[:3, :] - J_num)
 
-    print("Finite difference Jw:")
-    print(Jw_num)
-    print("Jw error:")
-    print(J[3:, :] - Jw_num)
+#     print("Finite difference Jw:")
+#     print(Jw_num)
+#     print("Jw error:")
+#     print(J[3:, :] - Jw_num)
 
-    v, w = q_dot2eevw(J, q_dot)
+#     v, w = q_dot2eevw(J, q_dot)
 
-    print("v =", v)
-    print("w =", w)
-    print("rank =", np.linalg.matrix_rank(J))
-    print("condition number =", np.linalg.cond(J))
-    # 如果想在瞬时意义上独立控制末端的 6 个自由度：理想情况下需要：rank = 6
-    # 现在只有 5，意味着末端的 6 个速度自由度里面，有一个方向无法独立产生。
-    # 是因为J[:,0]=J[:,1]也就是 joint 1 和 joint 2 对末端产生完全一样的瞬时运动效果。
-    # 因为雅可比矩阵几乎不可逆
+#     print("v =", v)
+#     print("w =", w)
+#     print("rank =", np.linalg.matrix_rank(J))
+#     print("condition number =", np.linalg.cond(J))
+#     # 如果想在瞬时意义上独立控制末端的 6 个自由度：理想情况下需要：rank = 6
+#     # 现在只有 5，意味着末端的 6 个速度自由度里面，有一个方向无法独立产生。
+#     # 是因为J[:,0]=J[:,1]也就是 joint 1 和 joint 2 对末端产生完全一样的瞬时运动效果。
+#     # 因为雅可比矩阵几乎不可逆
 
-    # DifferentialIK就是反过来，从末端的运动差->关节的角速度，但是奇异姿态导致rank(J)=5，不能简单求逆
-    # 改成J+，叫 Moore-Penrose pseudoinverse
-    # 比如人为指定末端速度
-    x_dot = np.array([
-        0.05,   # vx m/s
-        0.00,   # vy
-        0.00,   # vz
-        0.00,   # wx rad/s
-        0.00,   # wy
-        0.00    # wz
-    ])
-    # 得到下一次的末端q值
-    q_next = v_inverse_kinematics(q_init = q,x_dot = x_dot)
+#     # DifferentialIK就是反过来，从末端的运动差->关节的角速度，但是奇异姿态导致rank(J)=5，不能简单求逆
+#     # 改成J+，叫 Moore-Penrose pseudoinverse
+#     # 比如人为指定末端速度
+#     x_dot = np.array([
+#         0.05,   # vx m/s
+#         0.00,   # vy
+#         0.00,   # vz
+#         0.00,   # wx rad/s
+#         0.00,   # wy
+#         0.00    # wz
+#     ])
+#     # 得到下一次的末端q值
+#     q_next = v_inverse_kinematics(q_init = q,x_dot = x_dot)
    
 
-    # 或者位置Ik
-    # 当前末端pos
-    T_joints = FK_learn.Tbn(q,Tb1,T12,T23,T34,T45,T56)
-    T_ee = T_joints[-1]
-    p_current,r_current = FK_learn.transfotm2Cartesian(T_ee)
-    # 目标末端pos,rpy
-    p_target = np.array([
-        p_current[0] + 0.05,
-        p_current[1],
-        p_current[2]
-    ])
-    r_target = np.array([
-            r_current[0] + 0.5,
-            r_current[1],
-            r_current[2]
-        ])
-    q_solution, success, steps = inverse_kinematics(
-        q_init=q,
-        pos_target=p_target,
-        rpy_target = r_target
-    )
-    T_joints_solution  = FK_learn.Tbn(q_solution,Tb1,T12,T23,T34,T45,T56)
-    T_ee_solution = T_joints_solution[-1]
-    p_solution,r_solution=FK_learn.transfotm2Cartesian(T_ee_solution)
-    print(f"pos_target:{p_target},rpy_target = {r_target},sulution:{q_solution},pos_current:{p_solution},rpy_current = {r_solution},success:{success}")
+#     # 或者位置Ik
+#     # 当前末端pos
+#     T_joints = FK_learn.Tbn(q,Tb1,T12,T23,T34,T45,T56)
+#     T_ee = T_joints[-1]
+#     p_current,r_current = FK_learn.transfotm2Cartesian(T_ee)
+#     # 目标末端pos,rpy
+#     p_target = np.array([
+#         p_current[0] + 0.05,
+#         p_current[1],
+#         p_current[2]
+#     ])
+#     r_target = np.array([
+#             r_current[0] + 0.5,
+#             r_current[1],
+#             r_current[2]
+#         ])
+#     q_solution, success, steps = inverse_kinematics(
+#         q_init=q,
+#         pos_target=p_target,
+#         rpy_target = r_target
+#     )
+#     T_joints_solution  = FK_learn.Tbn(q_solution,Tb1,T12,T23,T34,T45,T56)
+#     T_ee_solution = T_joints_solution[-1]
+#     p_solution,r_solution=FK_learn.transfotm2Cartesian(T_ee_solution)
+#     print(f"pos_target:{p_target},rpy_target = {r_target},sulution:{q_solution},pos_current:{p_solution},rpy_current = {r_solution},success:{success}")
         
         
 
