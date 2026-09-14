@@ -603,3 +603,38 @@ This file stores concise cross-device task context.
 - Next step: 在 IK_learn.py 中加入 pose_error、damped_pseudoinverse 和多步闭环轨迹跟踪。
 - Summary: 当前代码已能验证雅可比正确性并计算 q_dot，但还没有把目标末端位姿误差反馈到控制器；教学重点转为闭环 differential IK。
 
+## 2026-09-12T18:51:35+08:00
+
+- Keywords: VLA学习, 第二周Day5完成, DLS微分IK, 数值位置IK, 轨迹
+- Progress: 已检查用户完整IK代码：实现几何/数值Jacobian、DLS伪逆、姿态误差、速度IK和迭代位置IK，并能输出q解；核心概念已掌握。
+- Next step: 进入下一天：从单个IK解转向关节空间/笛卡尔空间轨迹插值与执行器命令接口。
+- Summary: 用户已完成第二周第五天的基础IK学习。仍有工程化改进项：参数显式传递、分别设置位置姿态容差、关节位置限位和轨迹规划。
+
+## 2026-09-14T21:41:12+08:00
+
+- Keywords: VLA学习, 第三周Day1, 轨迹插值, 关节空间, 笛卡尔空间, IK采样
+- Progress: 进入八周计划第三周第一天。上周期末已完成几何/数值雅可比、DLS伪逆、速度IK和迭代位置IK。今天主题为关节空间与笛卡尔空间轨迹插值，并连接到执行器命令接口；已讲解概念、公式和对比图，练习由用户独立完成。
+- Next step: 用户在test目录独立编写trajectory_learn.py：实现关节线性插值、笛卡尔直线采样逐点IK(热启动)、关节速度可行性检查，并对比两种空间的实际路径差异。
+- Summary: 第三周Day1开始：轨迹插值教学已开始，等待用户提交trajectory_learn.py练习代码。
+
+## 2026-09-14T21:46:29+08:00
+
+- Keywords: VLA学习, 第三周Day1, 行为克隆, Behavior Cloning, toy reaching, covariate shift
+- Progress: 用户提供八周计划原文：第三周主题为行为克隆与强化学习基础(09-16至09-22)。Day1为Behavior Cloning：demonstration、policy、supervised imitation learning、toy reaching(state->action)、train loss与closed-loop success对比、covariate shift。此前按周计划外推的轨迹插值主题作废，以计划原文为准。
+- Next step: 用户在test目录独立编写toy_behavior_cloning.py：专家P控制器采集示范、MLP模仿训练、闭环成功率评测、对比train loss与闭环成功率并解释covariate shift。
+- Summary: 第三周Day1修正为行为克隆教学，练习产物toy_behavior_cloning.py由用户独立完成。
+
+## 2026-09-14T21:54:08+08:00
+
+- Keywords: 第三周Day1, Behavior Cloning, 分步教学, toy reaching
+- Progress: 已核对原计划；讲解BC监督学习目标与闭环分布偏移，提供第一步二维环境与专家控制器代码供用户独立输入运行。未创建训练脚本，用户运行结果待验证。
+- Next step: 用户完成test/toy_behavior_cloning.py第一步并反馈输出，随后实现示范采集、MLP训练和闭环评估。
+- Summary: 采用分阶段交互教学，首先明确4维状态、2维速度动作和专家P控制器。
+
+## 2026-09-14T21:59:07+08:00
+
+- Keywords: 第三周Day1, Behavior Cloning, IK对比, 专家策略, 状态动作映射
+- Progress: 已回应用户对BC与IK相似性的观察：说明两者都可表示为状态到动作再到状态更新；明确IK使用已知运动学模型在线求解，BC从专家示范离线学习策略。尚未进入示范采集代码。
+- Next step: 继续运行并检查toy_behavior_cloning.py第一步，然后收集专家轨迹并训练MLP。
+- Summary: 将BC定位为可由IK生成标签的策略模仿过程，帮助用户把已有IK知识迁移到行为克隆。
+
