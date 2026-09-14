@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+from torch import nn
 
 DT = 0.1
 MAX_SPEED = 1.0  # 每个坐标轴的速度上限
@@ -28,17 +30,28 @@ def step(position, action):
 
     return next_position
 
+def collect_demonstrations(num_episodes=100,max_steps = 50,seed = 0):
+    rng = np.random.default_rng(seed)
+    states = []
+    actions = []
+    for _ in range(num_episodes):
+        position = rng.uniform(-1.0, 1.0, size=2).astype(np.float32)
+        goal = rng.uniform(-1.0, 1.0, size=2).astype(np.float32)
+        for _ in range(max_steps):
+            state = make_state(position, goal)
+            action = expert_policy(state).astype(np.float32)
+            states.append(state)
+            actions.append(action)
+            position = step(position, action).astype(np.float32)
+            if np.linalg.norm(goal - position) < 0.05:
+                break
+    return np.stack(states), np.stack(actions)
 
 if __name__ == "__main__":
-    position = np.array([0.0, 0.0], dtype=np.float32)
-    goal = np.array([0.8, -0.4], dtype=np.float32)
-
-    state = make_state(position, goal)
-    action = expert_policy(state)
-    next_position = step(position, action)
-
-    print("state:", state)
-    print("action:", action)
-    print("next_position:", next_position)
-    print("distance before:", np.linalg.norm(goal - position))
-    print("distance after:", np.linalg.norm(goal - next_position))
+    states,actions = collect_demonstrations()
+    print("states shape:", states.shape)
+    print("actions shape:", actions.shape)
+    print(
+        "label check:",
+        np.allclose(actions[0], expert_policy(states[0])),
+    )
