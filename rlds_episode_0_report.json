@@ -1,0 +1,169 @@
+{
+  "data_dir": "/home/mia/datasets/Libero_RLDS/libero_spatial_no_noops/1.0.0",
+  "split": "train",
+  "episode_index": 0,
+  "episode_metadata": {
+    "file_path": "/iris/u/moojink/prismatic-dev/LIBERO/libero/datasets/regenerated--no_noops/libero_spatial/pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate_demo.hdf5"
+  },
+  "language_instructions": [
+    "pick up the black bowl next to the cookie box and place it on the plate"
+  ],
+  "total_steps": 110,
+  "first_step": {
+    "is_first": true,
+    "is_last": false,
+    "is_terminal": false,
+    "index": 0,
+    "reward": 0.0,
+    "discount": 1.0
+  },
+  "last_step": {
+    "is_first": false,
+    "is_last": true,
+    "is_terminal": true,
+    "index": 109,
+    "reward": 1.0,
+    "discount": 1.0
+  },
+  "flag_true_indices": {
+    "is_first": [
+      0
+    ],
+    "is_last": [
+      109
+    ],
+    "is_terminal": [
+      109
+    ]
+  },
+  "fields_checked_against_schema_on_every_step": {
+    "action": {
+      "shape": [
+        7
+      ],
+      "dtype": "float32",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "discount": {
+      "shape": [],
+      "dtype": "float32",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "is_first": {
+      "shape": [],
+      "dtype": "bool",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "is_last": {
+      "shape": [],
+      "dtype": "bool",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "is_terminal": {
+      "shape": [],
+      "dtype": "bool",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "language_instruction": {
+      "shape": [],
+      "dtype": "string",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "observation.image": {
+      "shape": [
+        256,
+        256,
+        3
+      ],
+      "dtype": "uint8",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "observation.joint_state": {
+      "shape": [
+        7
+      ],
+      "dtype": "float32",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "observation.state": {
+      "shape": [
+        8
+      ],
+      "dtype": "float32",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "observation.wrist_image": {
+      "shape": [
+        256,
+        256,
+        3
+      ],
+      "dtype": "uint8",
+      "nan_count": 0,
+      "inf_count": 0
+    },
+    "reward": {
+      "shape": [],
+      "dtype": "float32",
+      "nan_count": 0,
+      "inf_count": 0
+    }
+  },
+  "action": {
+    "shape": [
+      110,
+      7
+    ],
+    "dtype": "float32",
+    "range_per_dimension_finite_only": [
+      {
+        "dimension": 0,
+        "min": -0.5303571224212646,
+        "max": 0.9375
+      },
+      {
+        "dimension": 1,
+        "min": -0.21160714328289032,
+        "max": 0.862500011920929
+      },
+      {
+        "dimension": 2,
+        "min": -0.8303571343421936,
+        "max": 0.9267857074737549
+      },
+      {
+        "dimension": 3,
+        "min": -0.0867857113480568,
+        "max": 0.04500000178813934
+      },
+      {
+        "dimension": 4,
+        "min": -0.11464285850524902,
+        "max": 0.07285714149475098
+      },
+      {
+        "dimension": 5,
+        "min": -0.1039285734295845,
+        "max": 0.055714286863803864
+      },
+      {
+        "dimension": 6,
+        "min": -1.0,
+        "max": 1.0
+      }
+    ],
+    "values_outside_minus1_plus1": 0,
+    "note": "原始动作的观测范围；[-1, 1] 仅作参考，越界不自动判为错误。"
+  },
+  "issues": [],
+  "passed": true
+}
