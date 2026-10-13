@@ -1,5 +1,5 @@
 import tensorflow_datasets as tfds
-
+import tensorflow as tf
 data_dir = "/home/mia/datasets/Libero_RLDS/libero_spatial_no_noops/1.0.0"
 builder = tfds.builder_from_directory(data_dir)
 dataset = builder.as_dataset(split="train", shuffle_files=False)
@@ -20,3 +20,13 @@ for s in episode["steps"]:
     counter += 1
 
 print(counter)
+
+instruction = step["language_instruction"]
+print("任务文字：", instruction.numpy().decode("utf-8"))
+
+image = step["observation"]["image"]
+print("图像形状：", image.shape)
+print("图像类型：", image.dtype)
+print(step["discount"].dtype)
+print(step["reward"].dtype)
+
