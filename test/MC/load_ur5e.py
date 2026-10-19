@@ -682,7 +682,7 @@ def cartesian_closed_loop(
 
     return q_final, False, logs
 MODEL_DIR = Path(__file__).resolve().parent
-XML_PATH = MODEL_DIR / "models/ur5e.xml"
+XML_PATH = MODEL_DIR / "../models/ur5e.xml"
 
 model = mujoco.MjModel.from_xml_path(str(XML_PATH))
 data = mujoco.MjData(model)

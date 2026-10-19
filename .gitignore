@@ -4,3 +4,11 @@
 
 # Local RLDS Python environment
 /.venv-rlds/
+/.venv-rl/
+/.venv-mjlab/
+
+# Isolated mjlab learning environment
+/.venv-mjlab/
+
+# Downloaded dependency wheels (local installation cache)
+/output/
