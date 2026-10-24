@@ -3,10 +3,10 @@
 /logs/
 
 # Local RLDS Python environment
-/.venv-rlds/
+
 /.venv-rl/
 /.venv-mjlab/
-
+/.venv-openvla/
 # Isolated mjlab learning environment
 /.venv-mjlab/
 

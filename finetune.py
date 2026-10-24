@@ -20,11 +20,13 @@ from prismatic.vla.datasets.rlds.utils.data_utils import save_dataset_statistics
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class FinetuneConfig:
-    # vla_path: str = "/mnt/workspace/openvla-7b"                            # Path to OpenVLA model (on HuggingFace Hub)
+    # vla_path: str = "/mnt/workspace/openvla-7b"  
+    # vla_path: str = "/home/mia/data/openvla_work/models/openvla-7b"                          # Path to OpenVLA model (on HuggingFace Hub)
     vla_path : str = "/root/data/openvla_work/models/openvla-7b-finetuned-libero-spatial"
 
 
     # RLDS 数据集目录
+    # data_root_dir: Path = Path("/home/mia/datasets/Libero_RLDS")
     data_root_dir: Path = Path("/root/data/openvla_work/Libero_RLDS")
     dataset_name: str = "libero_spatial_no_noops"
 
