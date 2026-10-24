@@ -268,3 +268,80 @@
 - Next step: 本地完成模型下载和完整性检查、修复本地依赖用于静态/CPU检查、把训练配置改为可传入云端路径；迁移后在云端OpenVLA虚拟环境内核实python/torch/transformers/tensorflow/peft版本及GPU显存，再做1-step冒烟训练。
 - Summary: 本地6GB GPU不承担正式训练；云端基础镜像版本与OpenVLA官方测试栈不同，优先使用独立Python3.10+PyTorch2.2环境，基础CUDA12.1驱动可保留。
 
+## 2026-10-24T17:20:23+08:00
+
+- Keywords: OpenVLA模型完整性,openvla-7b,safetensors,tokenizer,权重索引
+- Progress: 已检查/home/mia/data/openvla_work/models/openvla-7b：目录约15GB，包含3个GB级safetensors分片；index声明982个张量、总权重15082474368字节，三个分片均可由safetensors打开，weight_map与实际张量完全一致（missing/extra/wrong_shard均0）；全部JSON有效，SentencePiece 32000词元、tokenizer.json 32001词元可读，远程配置/processor Python语法正常。未加载7B模型。
+- Next step: 修复openvla虚拟环境中huggingface_hub 2.3.0与transformers4.40.1/peft0.11.1的冲突，然后用AutoConfig/AutoProcessor做轻量加载检查；再准备可迁移云端的finetune配置。
+- Summary: 本地openvla-7b模型结构完整，没有漏文件或LFS/Xet指针；缺少.git仅表示不是Git工作树，不影响from_pretrained按本地目录加载。
+
+## 2026-10-24T17:20:47+08:00
+
+- Keywords: OpenVLA模型校验修正,缺失文件,modeling_prismatic.py,processor_config.json
+- Progress: 将本地目录与官方openvla/openvla-7b main文件树逐项比较，修正上一条完整性结论：3个权重分片、982张量索引、tokenizer均完整可读，但缺少modeling_prismatic.py（约26.1kB）和processor_config.json（130B）；本地gitattributes应为.gitattributes。config.json的AutoModelForVision2Seq明确依赖modeling_prismatic.py，因此当前from_pretrained会失败。
+- Next step: 补下载modeling_prismatic.py和processor_config.json到模型根目录，可选将gitattributes重命名为.gitattributes；随后重新核对官方18项文件并在修复Python依赖后运行AutoConfig/AutoProcessor轻量加载测试。
+- Summary: 权重没有漏分片且结构无损，但模型仓库缺2个小文件；补齐后才能视为完整。
+
+## 2026-10-24T17:22:36+08:00
+
+- Keywords: SSH,rsync,scp,云服务器,模型迁移,RLDS迁移
+- Progress: 已准备按真实本地路径迁移openvla-7b模型目录和libero_spatial_no_noops数据集；推荐rsync通过SSH续传，大文件不启用压缩。尚未连接云服务器或传输文件，因为缺少云端用户名/IP/端口/目标路径。
+- Next step: 用户替换SSH连接参数，先测试ssh与远端磁盘空间，再分别rsync模型和数据集，最后在云端检查目录大小、三个权重分片及16个TFRecord。
+- Summary: 模型约15GB、数据约1.8GB，rsync --partial --append-verify适合可恢复上传；scp仅适合简单一次性复制。
+
+## 2026-10-24T17:23:43+08:00
+
+- Keywords: SeetaCloud,SSH,rsync,55875,模型上传,数据上传
+- Progress: 已获得云端SSH入口root@connect.bjb1.seetacloud.com:55875，并生成对应的mkdir/rsync/验证命令。再次检查本地模型，modeling_prismatic.py、processor_config.json和.gitattributes仍未补齐；大权重可先传，补齐后重跑rsync只会增量上传小文件。
+- Next step: 创建云端/root/data/openvla_work/models和Libero_RLDS目录；分别rsync模型和libero_spatial_no_noops；本地补齐两个必需模型文件后再次rsync；云端验证15GB三分片和16个TFRecord。
+- Summary: 实际SSH命令使用root@connect.bjb1.seetacloud.com，不带转义反斜杠；端口55875。
+
+## 2026-10-24T17:33:42+08:00
+
+- Keywords: modified_libero_rlds,LFS指针,删除评估,Git gitlink,rsync exclude
+- Progress: 检查modified_libero_rlds：总占用仅884KB，96个TFRecord全部是约134B的Git LFS指针，真实分片0；真实libero_spatial数据位于/home/mia/datasets/Libero_RLDS。该目录在顶层Git中以mode160000 gitlink跟踪且自身是HF嵌套仓库，删除会让顶层git显示D，但几乎不释放空间。未删除。
+- Next step: 保留该目录作为schema/四套LIBERO清单参考；若上传整个openvla-data，用rsync --exclude=/modified_libero_rlds/排除。若用户坚持清理，先移动到备份位置而非直接删除。
+- Summary: 数据安全角度可删且不影响已下载的真实spatial数据，但收益仅884KB并会弄脏Git状态，因此推荐不删、传输时排除。
+
+## 2026-10-24T17:38:48+08:00
+
+- Keywords: openvla-data,rsync,GitHub仓库,.git,云端同步
+- Progress: 确认本地origin为git@github.com:Mia-298/openvla-data.git；本地.git约15GB、.venv-openvla约8GB、output约3.3GB，因此不应通过rsync上传这些目录。当前git status仅CODEX_CONTEXT.md有修改。建议云端先保留/clone自己的.git，再rsync工作区并排除.git、虚拟环境和产物。
+- Next step: 用户先用ssh检查/root/autodl-tmp/data/openvla-data/.git；存在则直接rsync工作区，不存在则从https://github.com/Mia-298/openvla-data.git clone后再rsync；上传后检查remote -v和status。
+- Summary: 只要云端目标目录已有.git，排除本地.git上传后仍是关联GitHub的Git仓库；rsync不会把未提交改动自动推送到GitHub。
+
+## 2026-10-24T17:44:01+08:00
+
+- Keywords: rsync增量同步,Git仓库,单向同步,云端训练,轻量clone
+- Progress: 确认rsync可用于本地到云端的重复增量同步，但不提供版本历史或双向冲突合并。本地.git约15GB，其中git报告8.82GiB为临时pack垃圾、正常对象约5.8GiB；此外有.venv-openvla 8GB、.venv-rl 5.7GB、.venv-mjlab 6.5GB和output 3.3GB，均应排除。git lfs ls-files为0，clone慢不是当前LFS跟踪文件导致。
+- Next step: 以本地为唯一代码源，先确保云端目标已有.git（推荐depth=1轻量clone），之后重复同一rsync命令上传变化；云端修改需通过Git commit/push或明确反向rsync，避免双向覆盖。
+- Summary: rsync适合快速部署式同步，重跑只传变化；Git仍负责历史和冲突。不要上传15GB本地.git，也不要默认使用--delete。
+
+## 2026-10-24T17:46:08+08:00
+
+- Keywords: Git clone中断,浅克隆,depth1,filter blob none,云端仓库
+- Progress: 用户在云端执行普通SSH git clone，进度18%且很慢。基于本地仓库可达Git对象数GB，建议Ctrl+C中断完整历史克隆；中断只留下云端不完整目录，不影响GitHub或本地。
+- Next step: 将云端/root/autodl-tmp/data/openvla-data不完整目录改名保留，使用--depth 1 --filter=blob:none --single-branch --branch main浅克隆；验证git status和.git大小后，再用rsync增量同步本地工作区。
+- Summary: 本场景无需完整Git历史；浅克隆保留GitHub关联和正常commit/push/pull能力，后续需要历史时可fetch --unshallow。
+
+## 2026-10-24T17:58:52+08:00
+
+- Keywords: rsync保持Git仓库,本地浅仓库,staging,云端同步
+- Progress: 纠正方案并实测：通过本地file://执行depth=1浅克隆，不访问网络，生成.git约40MB；叠加当前工作区并排除虚拟环境/output后，完整上传暂存目录仅约110MB，origin已改回git@github.com:Mia-298/openvla-data.git，status仅保留CODEX_CONTEXT.md修改。暂存路径为/tmp/openvla-shallow-check.bRCqU7/openvla-data。
+- Next step: 中断云端普通clone并将残留目录改名；rsync本地110MB暂存目录（包含小.git）到/root/autodl-tmp/data/openvla-data。以后直接从原工作区rsync但排除.git，从而保留云端小.git并增量同步代码。
+- Summary: rsync完全可以保持Git仓库；首次上传一个本地构造的小型浅.git，后续同步排除原始15GB.git即可兼顾速度和GitHub关联。
+
+## 2026-10-24T18:03:20+08:00
+
+- Keywords: 云端Git同步,浅仓库,git pull,git push,rsync
+- Progress: 确认首次rsync包含精简.git后，云端浅仓库可正常pull/commit/push；浅仓库仅缺旧历史，不影响后续最新提交同步。
+- Next step: 本地改动优先commit+push，云端git pull --ff-only；若云端修改则先commit+push再由本地pull。运行pull前先git status，避免rsync留下的未提交修改与远端冲突。
+- Summary: Git用于正式版本同步，rsync用于快速传未提交代码；同一批修改不要同时走两条路径。
+
+## 2026-10-24T18:04:00+08:00
+
+- Keywords: 云端Git,dubious ownership,safe.directory,rsync所有权
+- Progress: 说明云端仓库的 dubious ownership 来自 rsync 保留本地所有权；建议在云端修正为 root:root，或将明确仓库加入 Git safe.directory。
+- Next step: 用户在云端执行 chown 或 safe.directory 后重新运行 git status 和 git remote -v。
+- Summary: 处理 rsync 后云端 Git 仓库所有权安全检查。
+
